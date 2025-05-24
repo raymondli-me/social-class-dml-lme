@@ -1,0 +1,101 @@
+system_prompt,pre_text_prompt,post_text_prompt,name
+Return JSON with 'mentions_income' (1 or 0).,Mentions income? ,,mentions_income
+Return JSON with 'owns_property' (1 or 0).,"Mentions owning home, car, or land? ",,owns_property
+Return JSON with 'occupation_prestige' (1 or 0).,Mentions a prestigious job? ,,occupation_prestige
+Return JSON with 'education_attained' (1 or 0).,Mentions education or university? ,,education_attained
+Return JSON with 'travels_abroad' (1 or 0).,Mentions international travel? ,,travels_abroad
+Return JSON with 'luxury_experiences' (1 or 0).,Mentions luxury or expensive hobbies? ,,luxury_experiences
+Return JSON with 'private_schooling' (1 or 0).,Mentions private or elite schools? ,,private_schooling
+Return JSON with 'name_dropping' (1 or 0).,"Mentions elite names (schools, jobs, places)? ",,name_dropping
+Return JSON with 'financial_security' (1 or 0).,Mentions financial security? ,,financial_security
+Return JSON with 'family_support' (1 or 0).,Mentions parental money or help? ,,family_support
+Return JSON with 'job_stability' (1 or 0).,Mentions having a steady job? ,,job_stability
+Return JSON with 'managerial_role' (1 or 0).,Mentions being a boss or manager? ,,managerial_role
+Return JSON with 'self_employed' (1 or 0).,Mentions owning a business? ,,self_employed
+Return JSON with 'graduate_school' (1 or 0).,Mentions finishing more school after college? ,,graduate_school
+Return JSON with 'car_ownership' (1 or 0).,Mentions owning a car? ,,car_ownership
+Return JSON with 'own_home' (1 or 0).,Mentions owning a house or apartment? ,,own_home
+Return JSON with 'big_family' (1 or 0).,Mentions having a big family or many kids? ,,big_family
+Return JSON with 'travel_usa' (1 or 0).,Mentions traveling across the U.S.? ,,travel_usa
+Return JSON with 'travel_abroad' (1 or 0).,Mentions traveling to other countries? ,,travel_abroad
+Return JSON with 'has_dog' (1 or 0).,Mentions owning a dog or pet? ,,has_dog
+Return JSON with 'nice_clothes' (1 or 0).,Mentions wearing nice or fancy clothes? ,,nice_clothes
+Return JSON with 'owns_tv' (1 or 0).,Mentions owning a television? ,,owns_tv
+Return JSON with 'nice_furniture' (1 or 0).,Mentions having nice furniture at home? ,,nice_furniture
+Return JSON with 'eats_out' (1 or 0).,Mentions going out to restaurants? ,,eats_out
+Return JSON with 'vacation' (1 or 0).,Mentions going on vacation? ,,vacation
+Return JSON with 'reads_books' (1 or 0).,Mentions reading books for fun? ,,reads_books
+Return JSON with 'has_college_degree' (1 or 0).,Mentions finishing college? ,,has_college_degree
+Return JSON with 'helping_parents' (1 or 0).,Mentions helping their parents or family? ,,helping_parents
+Return JSON with 'saving_money' (1 or 0).,Mentions saving money or being careful with money? ,,saving_money
+Return JSON with 'pays_bills' (1 or 0).,Mentions paying bills or rent? ,,pays_bills
+Return JSON with 'has_credit_card' (1 or 0).,Mentions using a credit card or charge account? ,,has_credit_card
+Return JSON with 'owns_records' (1 or 0).,Mentions owning records or music player? ,,owns_records
+Return JSON with 'goes_to_church' (1 or 0).,Mentions going to church regularly? ,,goes_to_church
+Return JSON with 'clean_home' (1 or 0).,Mentions having a clean or well-kept home? ,,clean_home
+Return JSON with 'well_paid' (1 or 0).,Mentions making good money or being well-paid? ,,well_paid
+Return JSON with 'uses_phone' (1 or 0).,Mentions having a home phone? ,,uses_phone
+Return JSON with 'has_garage' (1 or 0).,Mentions having a garage or driveway? ,,has_garage
+Return JSON with 'nice_neighborhood' (1 or 0).,Mentions living in a nice or quiet neighborhood? ,,nice_neighborhood
+Return JSON with 'rides_bus' (1 or 0).,Mentions taking the bus to work or school? ,,rides_bus
+Return JSON with 'healthy' (1 or 0).,Mentions being healthy or eating well? ,,healthy
+Return JSON with 'gets_promotions' (1 or 0).,Mentions getting promoted or doing well at work? ,,gets_promotions
+Return JSON with 'drives_to_work' (1 or 0).,Mentions driving to work? ,,drives_to_work
+Return JSON with 'lives_in_apartment' (1 or 0).,Mentions living in an apartment? ,,lives_in_apartment
+Return JSON with 'goes_to_movies' (1 or 0).,Mentions going to the movies or drive-in? ,,goes_to_movies
+Return JSON with 'wears_suit' (1 or 0).,Mentions wearing a suit or dressing up for work? ,,wears_suit
+Return JSON with 'has_kids' (1 or 0).,Mentions having kids? ,,has_kids
+Return JSON with 'plans_future' (1 or 0).,Mentions planning for the future or setting goals? ,,plans_future
+Return JSON with 'goes_shopping' (1 or 0).,Mentions going shopping for fun or food? ,,goes_shopping
+Return JSON with 'has_nice_lawn' (1 or 0).,Mentions having a nice lawn or garden? ,,has_nice_lawn
+Return JSON with 'has_life_insurance' (1 or 0).,Mentions having life insurance or planning for emergencies?,,has_life_insurance
+Return JSON with 'class_rating' (1 to 10).,"On a ladder from 1 (lowest) to 10 (highest), where would this person place themselves in society? ",,ladder_standard
+Return JSON with 'status_level' (1 to 10).,Rate this person’s status in society from 1 (low) to 10 (high): ,,status_rating
+Return JSON with 'economic_position' (1 to 10).,Where does this person fall economically from 1 (struggling) to 10 (wealthy)? ,,economic_position
+Return JSON with 'social_rank' (1 to 10).,Rank the person’s place in the social order from 1 (lowest) to 10 (highest): ,,social_rank
+Return JSON with 'life_success' (1 to 10).,How successful is this person's life on a scale from 1 to 10? ,,life_success
+Return JSON with 'societal_position' (1 to 10).,Where would this person be placed in society from 1 (bottom) to 10 (top)? ,,societal_position
+Return JSON with 'respect_level' (1 to 10).,How much respect would this person get from 1 (least) to 10 (most)? ,,respect_level
+Return JSON with 'income_ladder' (1 to 10).,Place the person on an income ladder from 1 (lowest) to 10 (highest): ,,income_ladder
+Return JSON with 'opportunity_scale' (1 to 10).,Rate how many opportunities this person has from 1 to 10: ,,opportunity_scale
+Return JSON with 'life_quality' (1 to 10).,How would you rate this person’s quality of life from 1 (poor) to 10 (excellent)? ,,life_quality
+Return JSON with 'social_position' (1 to 10).,Where does this person fit on the social ladder from 1 to 10? ,,social_position
+Return JSON with 'prestige_rating' (1 to 10).,How prestigious is this person’s life from 1 to 10? ,,prestige_rating
+Return JSON with 'wealth_class' (1 to 10).,How wealthy is this person from 1 (not at all) to 10 (extremely)? ,,wealth_class
+Return JSON with 'ladder_self' (1 to 10).,Where would this person place themselves on a ladder of success from 1 to 10? ,,ladder_self
+Return JSON with 'financial_security' (1 to 10).,Rate this person’s financial security from 1 (none) to 10 (complete): ,,financial_security
+Return JSON with 'power_position' (1 to 10).,Rate how much power or influence this person has in life from 1 to 10: ,,power_position
+Return JSON with 'access_scale' (1 to 10).,How much access to resources and advantages does this person have (1–10)? ,,access_scale
+Return JSON with 'career_success' (1 to 10).,Rate this person’s career success from 1 to 10: ,,career_success
+Return JSON with 'community_status' (1 to 10).,How would their community rate them from 1 (low) to 10 (high)? ,,community_status
+Return JSON with 'standard_of_living' (1 to 10).,Rate their standard of living from 1 to 10: ,,standard_of_living
+Return JSON with 'family_background' (1 to 10).,"Based on background and upbringing, rate them from 1 to 10: ",,family_background
+Return JSON with 'fame_level' (1 to 10).,How well-known or famous is this person (1–10)? ,,fame_level
+Return JSON with 'life_chances' (1 to 10).,Rate this person’s life chances or opportunity set from 1 to 10: ,,life_chances
+Return JSON with 'comfort_level' (1 to 10).,How comfortable is this person’s life from 1 (hard) to 10 (easy)? ,,comfort_level
+Return JSON with 'household_status' (1 to 10).,Rate the status of this person’s household from 1 to 10: ,,household_status
+Return JSON with 'future_prospects' (1 to 10).,How good are their future prospects? Rate 1–10: ,,future_prospects
+Return JSON with 'social_circle_status' (1 to 10).,How high-status is their social circle? ,,social_circle_status
+Return JSON with 'lifestyle_rating' (1 to 10).,How would you rate their lifestyle from 1 to 10? ,,lifestyle_rating
+Return JSON with 'mobility_score' (1 to 10).,Rate the level of upward mobility in this person’s life: ,,mobility_score
+Return JSON with 'material_possessions' (1 to 10).,Rate the level of material possessions this person has: ,,material_possessions
+Return JSON with 'success_perception' (1 to 10).,How successful do others perceive this person to be (1–10)? ,,success_perception
+Return JSON with 'relative_status' (1 to 10).,Rate this person compared to others their age (1–10): ,,relative_status
+Return JSON with 'economic_comfort' (1 to 10).,How economically comfortable is this person (1–10)? ,,economic_comfort
+Return JSON with 'privilege_score' (1 to 10).,How privileged is this person’s life (1–10)? ,,privilege_score
+Return JSON with 'elite_access' (1 to 10).,How much access does this person have to elite resources? ,,elite_access
+Return JSON with 'public_image' (1 to 10).,Rate this person’s public image from 1 to 10: ,,public_image
+Return JSON with 'overall_life_score' (1 to 10).,Score their overall life situation (1–10): ,,overall_life_score
+Return JSON with 'social_ladder_step' (1 to 10).,"On the ladder of society, what step is this person on? ",,social_ladder_step
+Return JSON with 'top_percentile' (1 to 10).,"Estimate this person’s percentile (1 = bottom, 10 = top): ",,top_percentile
+Return JSON with 'education_power' (1 to 10).,How much power does their education give them? ,,education_power
+Return JSON with 'access_privilege' (1 to 10).,Rate their access to opportunities from 1 to 10: ,,access_privilege
+Return JSON with 'home_quality' (1 to 10).,Rate the quality of their home environment (1–10): ,,home_quality
+Return JSON with 'wardrobe_status' (1 to 10).,Rate the quality of their wardrobe and clothing: ,,wardrobe_status
+Return JSON with 'financial_headroom' (1 to 10).,How much extra financial room does this person have? ,,financial_headroom
+Return JSON with 'career_options' (1 to 10).,How many good career options does this person have? ,,career_options
+Return JSON with 'cultural_capital' (1 to 10).,"How much cultural capital (education, taste, etc.) does this person have? ",,cultural_capital
+Return JSON with 'social_confidence' (1 to 10).,How confident is this person socially (1–10)? ,,social_confidence
+Return JSON with 'family_status' (1 to 10).,How well-regarded is their family in society? ,,family_status
+Return JSON with 'visibility_score' (1 to 10).,How visible or recognized is this person? ,,visibility_score
+Return JSON with 'stability_index' (1 to 10).,How stable and secure is this person’s life from 1 (very unstable) to 10 (very secure)? ,,stability_index

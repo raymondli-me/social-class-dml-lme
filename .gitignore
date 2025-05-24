@@ -1,35 +1,12 @@
-# Python
+# Allow all CSV files
+!*.csv
+
+# Exclude Python and system files
 __pycache__/
 *.py[cod]
-*\.class
-*.so
-.Python
 venv/
-ENV/
-env/
-*.egg-info/
-.pytest_cache/
-
-# Large data files  
-*.csv
-!data/essay_dataset.csv
-!data/ladder_variations_*.csv
-!data/prompts_*.csv
-
-# Outputs
-outputs/
-!outputs/.gitkeep
-
-# Visualizations
-visualizations/
-!visualizations/.gitkeep
-
-# System
 .DS_Store
 *.log
 *.tmp
 .vscode/
 .idea/
-
-# Keep checkpoint files
-!checkpoints/*.md

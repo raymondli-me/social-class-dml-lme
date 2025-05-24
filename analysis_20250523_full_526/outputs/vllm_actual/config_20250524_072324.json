@@ -1,0 +1,17 @@
+{
+  "model_name": "Qwen/Qwen2.5-32B-Instruct-AWQ",
+  "quantization": "awq",
+  "trust_remote_code": false,
+  "batch_size": 10,
+  "max_tokens": 50,
+  "temperature": 0.1,
+  "max_model_len": 2048,
+  "tensor_parallel_size": 2,
+  "gpu_memory_utilization": 0.8,
+  "text_column": "text",
+  "id_column": "id",
+  "output_dir": "outputs/vllm_actual",
+  "prompt_config_path": "data/ladder_variations_50_complete.csv",
+  "enforce_eager": true,
+  "dtype": "float16"
+}

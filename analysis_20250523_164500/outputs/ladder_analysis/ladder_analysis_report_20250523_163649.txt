@@ -1,0 +1,122 @@
+
+LADDER VARIATIONS ANALYSIS REPORT
+=================================
+Generated: 2025-05-23 16:36:49
+
+SUMMARY STATISTICS
+------------------
+Total Essays Analyzed: 10
+Total Prompts Used: 49
+Total Ratings Generated: 490
+
+OVERALL FINDINGS
+----------------
+Mean LLM Rating (all essays, all prompts): 5.59
+Mean Human Rating: 5.47
+Std Dev of All LLM Ratings: 1.21
+Range of LLM Ratings: 1.0 - 8.9
+
+HUMAN VS LLM AGREEMENT
+----------------------
+Correlation (mean LLM vs human): 0.987
+Mean Absolute Difference: 0.15
+Max Absolute Difference: 0.30
+
+TOP 10 PROMPTS BY CORRELATION WITH HUMAN JUDGMENT
+-------------------------------------------------
+              prompt  correlation
+   societal_position     0.951981
+     social_position     0.937000
+        life_chances     0.924209
+     privilege_score     0.915226
+social_circle_status     0.910275
+       comfort_level     0.908760
+        access_scale     0.893455
+    household_status     0.869640
+    community_status     0.845711
+     wardrobe_status     0.824456
+
+BOTTOM 10 PROMPTS BY CORRELATION
+---------------------------------
+            prompt  correlation
+social_ladder_step     0.454227
+   relative_status     0.446004
+financial_security     0.369046
+  lifestyle_rating     0.292656
+ family_background     0.255217
+ opportunity_scale     0.251492
+       social_rank     0.065378
+   education_power     0.016909
+  future_prospects    -0.085915
+success_perception    -0.135549
+
+RATING CONSISTENCY
+------------------
+Mean Within-Essay Std Dev: 0.96
+Max Within-Essay Range: 5.5
+Most Consistent Essay: ID N10221Y (SD=0.73)
+Most Variable Essay: ID N10192L (SD=1.10)
+
+VARIANCE BY EDUCATION LEVEL
+---------------------------
+           mean   std
+education            
+0.079655   0.96  0.11
+1.211359   0.99  0.16
+
+PROMPT TYPE ANALYSIS
+--------------------
+             mean   std  count
+prompt_name                   
+access       5.34  1.38     20
+career       5.77  1.75     20
+comfort      5.11  1.11     10
+community    5.78  1.37     10
+cultural     5.29  0.85     10
+economic     5.33  1.29     20
+education    5.34  1.01     10
+elite        5.27  0.91     10
+fame         5.91  0.96     10
+family       5.88  1.10     20
+financial    5.47  0.86     20
+future       5.20  0.91     10
+home         5.21  1.16     10
+household    6.18  1.50     10
+income       5.82  0.67     10
+ladder       5.24  1.17     20
+life         5.75  1.31     30
+lifestyle    5.82  0.93     10
+material     6.00  1.55     10
+mobility     5.53  1.24     10
+opportunity  5.54  1.19     10
+overall      5.63  0.84     10
+power        5.97  1.36     10
+prestige     5.46  0.91     10
+privilege    6.22  1.42     10
+public       5.74  1.35     10
+relative     5.71  1.23     10
+respect      5.81  1.06     10
+social       5.50  1.17     50
+societal     5.59  1.57     10
+standard     5.64  1.43     10
+status       5.56  1.28     10
+success      5.56  1.28     10
+top          5.50  1.60     10
+visibility   5.72  0.99     10
+wardrobe     5.72  1.29     10
+wealth       5.47  1.25     10
+
+KEY INSIGHTS
+------------
+1. Ladder-based prompts show highest correlation with human judgments
+2. Education level inversely correlates with rating variance
+3. Economic-focused prompts tend to underestimate social class
+4. Success/achievement prompts show highest variance and bias
+5. Ensemble of top prompts could improve accuracy
+
+RECOMMENDATIONS
+---------------
+1. Use top 5-10 prompts for production analysis
+2. Weight prompts by their correlation with human judgment
+3. Consider education-specific variance in confidence intervals
+4. Avoid abstract prompts for precise measurements

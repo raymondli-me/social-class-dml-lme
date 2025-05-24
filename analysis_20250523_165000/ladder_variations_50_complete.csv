@@ -1,0 +1,51 @@
+system_prompt,pre_text_prompt,post_text_prompt,name
+Return JSON with 'class_rating' (1 to 10).,"On a ladder from 1 (lowest) to 10 (highest), where would this person place themselves in society? ",,ladder_standard
+Return JSON with 'status_level' (1 to 10).,Rate this person's status in society from 1 (low) to 10 (high): ,,status_rating
+Return JSON with 'economic_position' (1 to 10).,Where does this person fall economically from 1 (struggling) to 10 (wealthy)? ,,economic_position
+Return JSON with 'social_rank' (1 to 10).,Rank the person's place in the social order from 1 (lowest) to 10 (highest): ,,social_rank
+Return JSON with 'life_success' (1 to 10).,How successful is this person's life on a scale from 1 to 10? ,,life_success
+Return JSON with 'societal_position' (1 to 10).,Where would this person be placed in society from 1 (bottom) to 10 (top)? ,,societal_position
+Return JSON with 'respect_level' (1 to 10).,How much respect would this person get from 1 (least) to 10 (most)? ,,respect_level
+Return JSON with 'income_ladder' (1 to 10).,Place the person on an income ladder from 1 (lowest) to 10 (highest): ,,income_ladder
+Return JSON with 'opportunity_scale' (1 to 10).,Rate how many opportunities this person has from 1 to 10: ,,opportunity_scale
+Return JSON with 'life_quality' (1 to 10).,How would you rate this person's quality of life from 1 (poor) to 10 (excellent)? ,,life_quality
+Return JSON with 'social_position' (1 to 10).,Where does this person fit on the social ladder from 1 to 10? ,,social_position
+Return JSON with 'prestige_rating' (1 to 10).,How prestigious is this person's life from 1 to 10? ,,prestige_rating
+Return JSON with 'wealth_class' (1 to 10).,How wealthy is this person from 1 (not at all) to 10 (extremely)? ,,wealth_class
+Return JSON with 'ladder_self' (1 to 10).,Where would this person place themselves on a ladder of success from 1 to 10? ,,ladder_self
+Return JSON with 'financial_security' (1 to 10).,Rate this person's financial security from 1 (none) to 10 (complete): ,,financial_security
+Return JSON with 'power_position' (1 to 10).,Rate how much power or influence this person has in life from 1 to 10: ,,power_position
+Return JSON with 'access_scale' (1 to 10).,How much access to resources and advantages does this person have (1–10)? ,,access_scale
+Return JSON with 'career_success' (1 to 10).,Rate this person's career success from 1 to 10: ,,career_success
+Return JSON with 'community_status' (1 to 10).,How would their community rate them from 1 (low) to 10 (high)? ,,community_status
+Return JSON with 'standard_of_living' (1 to 10).,Rate their standard of living from 1 to 10: ,,standard_of_living
+Return JSON with 'family_background' (1 to 10).,"Based on background and upbringing, rate them from 1 to 10: ",,family_background
+Return JSON with 'fame_level' (1 to 10).,How well-known or famous is this person (1–10)? ,,fame_level
+Return JSON with 'life_chances' (1 to 10).,Rate this person's life chances or opportunity set from 1 to 10: ,,life_chances
+Return JSON with 'comfort_level' (1 to 10).,How comfortable is this person's life from 1 (hard) to 10 (easy)? ,,comfort_level
+Return JSON with 'household_status' (1 to 10).,Rate the status of this person's household from 1 to 10: ,,household_status
+Return JSON with 'future_prospects' (1 to 10).,How good are their future prospects? Rate 1–10: ,,future_prospects
+Return JSON with 'social_circle_status' (1 to 10).,How high-status is their social circle? ,,social_circle_status
+Return JSON with 'lifestyle_rating' (1 to 10).,How would you rate their lifestyle from 1 to 10? ,,lifestyle_rating
+Return JSON with 'mobility_score' (1 to 10).,Rate the level of upward mobility in this person's life: ,,mobility_score
+Return JSON with 'material_possessions' (1 to 10).,Rate the level of material possessions this person has: ,,material_possessions
+Return JSON with 'success_perception' (1 to 10).,How successful do others perceive this person to be (1–10)? ,,success_perception
+Return JSON with 'relative_status' (1 to 10).,Rate this person compared to others their age (1–10): ,,relative_status
+Return JSON with 'economic_comfort' (1 to 10).,How economically comfortable is this person (1–10)? ,,economic_comfort
+Return JSON with 'privilege_score' (1 to 10).,How privileged is this person's life (1–10)? ,,privilege_score
+Return JSON with 'elite_access' (1 to 10).,How much access does this person have to elite resources? ,,elite_access
+Return JSON with 'public_image' (1 to 10).,Rate this person's public image from 1 to 10: ,,public_image
+Return JSON with 'overall_life_score' (1 to 10).,Score their overall life situation (1–10): ,,overall_life_score
+Return JSON with 'social_ladder_step' (1 to 10).,"On the ladder of society, what step is this person on? ",,social_ladder_step
+Return JSON with 'top_percentile' (1 to 10).,"Estimate this person's percentile (1 = bottom, 10 = top): ",,top_percentile
+Return JSON with 'education_power' (1 to 10).,How much power does their education give them? ,,education_power
+Return JSON with 'access_privilege' (1 to 10).,Rate their access to opportunities from 1 to 10: ,,access_privilege
+Return JSON with 'home_quality' (1 to 10).,Rate the quality of their home environment (1–10): ,,home_quality
+Return JSON with 'wardrobe_status' (1 to 10).,Rate the quality of their wardrobe and clothing: ,,wardrobe_status
+Return JSON with 'financial_headroom' (1 to 10).,How much extra financial room does this person have? ,,financial_headroom
+Return JSON with 'career_options' (1 to 10).,How many good career options does this person have? ,,career_options
+Return JSON with 'cultural_capital' (1 to 10).,"How much cultural capital (education, taste, etc.) does this person have? ",,cultural_capital
+Return JSON with 'social_confidence' (1 to 10).,How confident is this person socially (1–10)? ,,social_confidence
+Return JSON with 'family_status' (1 to 10).,How well-regarded is their family in society? ,,family_status
+Return JSON with 'visibility_score' (1 to 10).,How visible or recognized is this person? ,,visibility_score
+Return JSON with 'peer_comparison' (1 to 10).,"Compared to others of their generation and background, where does this person stand (1-10)? ",,peer_comparison
