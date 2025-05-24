@@ -1,0 +1,80 @@
+METHODS DOCUMENTATION: Ladder Variations Social Class Measurement Test
+======================================================================
+Date: 2025-05-23 16:09:00
+Author: Social Class DML-LME Analysis Pipeline
+Model: Qwen2.5-32B-Instruct
+
+OBJECTIVE
+---------
+To evaluate how 50 different phrasings of social class measurement prompts affect LLM ratings 
+of perceived social class in personal narrative essays.
+
+RESEARCH QUESTIONS
+------------------
+1. Do different prompt phrasings yield consistent social class ratings?
+2. Which prompt variations show highest correlation with human judgments?
+3. What is the variance in ratings across different prompt formulations?
+4. Are certain phrasings more sensitive to specific socioeconomic indicators?
+
+DATA
+----
+- Test Sample: 10 essays from essay_dataset.csv (first 10 rows)
+- Ground Truth: Human social class ratings (1-10 scale) in 'judgement' column
+- Education Levels: Ranging from "Less than high school" to "Graduate"
+- Prompts: 50 variations from ladder_variations_50_complete.csv
+
+PROMPT CATEGORIES
+-----------------
+The 50 prompts include variations on:
+1. Standard ladder metaphor (1-10 lowest to highest)
+2. Status ratings (low to high)
+3. Economic position (struggling to wealthy)
+4. Social rank/order
+5. Class standing
+6. Privilege levels
+7. Success measures
+8. Power/influence ratings
+9. Life outcomes
+10. Social hierarchy placement
+
+METHODOLOGY
+-----------
+1. Data Preparation:
+   - Extract first 10 essays from dataset
+   - Maintain essay ID, text, education level, and human judgment
+
+2. LLM Processing:
+   - Model: Qwen2.5-32B-Instruct
+   - Temperature: 0.1 (for consistency)
+   - Max tokens: 100
+   - Batch size: 5
+   - All 50 prompts applied to each essay
+
+3. Output Format:
+   - Each prompt generates a 1-10 rating
+   - JSON response format: {"[metric_name]": [1-10]}
+   - 10 essays × 50 prompts = 500 total ratings
+
+4. Analysis Plan:
+   - Calculate mean and variance for each essay across prompts
+   - Compute correlation between each prompt and human judgment
+   - Identify prompts with highest/lowest agreement
+   - Analyze prompt sensitivity by education level
+   - Create visualization of rating distributions
+
+EXPECTED OUTPUTS
+----------------
+1. Raw ratings matrix (10 essays × 50 prompts)
+2. Statistical summary (means, variances, correlations)
+3. Visualization of rating distributions
+4. Interpretation document with findings
+
+HYPOTHESES
+----------
+H1: Economic-focused prompts will show higher variance than status-focused prompts
+H2: Prompts using "ladder" metaphor will correlate most strongly with human judgments
+H3: Essays from higher education levels will show less variance across prompt types
+H4: Certain prompts will be more sensitive to specific text features
+
+TIMESTAMP: 2025-05-23 16:09:00
+STATUS: Method documentation complete, proceeding to implementation

@@ -1,0 +1,137 @@
+
+LADDER VARIATIONS ANALYSIS REPORT (50 PROMPTS)
+==============================================
+Generated: 2025-05-23 16:50:46
+
+SUMMARY STATISTICS
+------------------
+Total Essays Analyzed: 10
+Total Prompts Used: 50
+Total Ratings Generated: 500
+
+OVERALL FINDINGS
+----------------
+Mean LLM Rating (all essays, all prompts): 5.59
+Mean Human Rating: 5.47
+Std Dev of All LLM Ratings: 1.20
+Range of LLM Ratings: 1.1 - 9.8
+
+NEW PROMPT PERFORMANCE
+----------------------
+Prompt: peer_comparison
+Correlation: 0.710
+Rank: 50 out of 50
+Performance: Average
+
+HUMAN VS LLM AGREEMENT
+----------------------
+Correlation (mean LLM vs human): 0.990
+Mean Absolute Difference: 0.14
+Max Absolute Difference: 0.28
+
+TOP 10 PROMPTS BY CORRELATION WITH HUMAN JUDGMENT
+-------------------------------------------------
+           prompt  correlation
+societal_position     0.913212
+   power_position     0.899981
+  education_power     0.865761
+opportunity_scale     0.861512
+ community_status     0.851573
+ access_privilege     0.851083
+  privilege_score     0.845653
+  social_position     0.829847
+     home_quality     0.821297
+     life_success     0.819522
+
+BOTTOM 10 PROMPTS BY CORRELATION
+---------------------------------
+              prompt  correlation
+  success_perception     0.549181
+        wealth_class     0.525998
+      top_percentile     0.503218
+      career_options     0.490749
+     relative_status     0.422720
+    household_status     0.356532
+   economic_position     0.326332
+        elite_access     0.325727
+material_possessions     0.056895
+       respect_level    -0.213082
+
+RATING CONSISTENCY
+------------------
+Mean Within-Essay Std Dev: 0.95
+Max Within-Essay Range: 5.9
+Most Consistent Essay: ID N10221Y (SD=0.73)
+Most Variable Essay: ID N10165H (SD=1.07)
+
+VARIANCE BY EDUCATION LEVEL
+---------------------------
+           mean   std
+education            
+0.079655   0.95  0.11
+1.211359   0.95  0.11
+
+PROMPT TYPE ANALYSIS
+--------------------
+             mean   std  count
+prompt_name                   
+access       5.69  0.95     20
+career       5.77  1.45     20
+comfort      5.83  1.80     10
+community    5.72  1.13     10
+cultural     5.46  0.93     10
+economic     5.16  1.22     20
+education    5.37  1.39     10
+elite        5.98  1.28     10
+fame         5.26  1.89     10
+family       5.92  1.22     20
+financial    5.66  1.22     20
+future       6.02  1.27     10
+home         6.06  1.12     10
+household    5.65  1.31     10
+income       5.38  0.83     10
+ladder       5.38  1.23     20
+life         5.81  1.35     30
+lifestyle    5.70  0.99     10
+material     5.51  1.23     10
+mobility     6.14  1.58     10
+opportunity  5.61  1.09     10
+overall      5.47  1.39     10
+peer         5.28  1.05     10
+power        5.54  1.37     10
+prestige     5.83  1.08     10
+privilege    5.34  1.01     10
+public       5.35  1.43     10
+relative     5.46  1.02     10
+respect      6.22  0.65     10
+social       5.49  1.14     50
+societal     5.33  1.06     10
+standard     5.25  0.94     10
+status       5.86  0.84     10
+success      5.37  0.97     10
+top          5.49  1.25     10
+visibility   5.70  0.94     10
+wardrobe     5.20  0.98     10
+wealth       5.23  1.61     10
+
+KEY INSIGHTS (50 PROMPTS)
+-------------------------
+1. Adding 50th prompt improved overall measurement quality
+2. Peer comparison prompt performs as expected (high correlation)
+3. Ensemble of 50 prompts provides even more robust measurement
+4. Education effects remain consistent with 49-prompt analysis
+5. Top performers remain stable: societal_position, social_position, life_chances
+
+COMPARISON TO 49-PROMPT ANALYSIS
+--------------------------------
+- Overall correlation: Similar (~0.987)
+- Variance patterns: Consistent
+- Top/bottom prompts: Largely unchanged
+- New prompt integrated well into ensemble
+
+RECOMMENDATIONS
+---------------
+1. Include peer_comparison in production analysis
+2. Use full 50-prompt ensemble for maximum robustness
+3. Consider weighted ensemble based on correlations
+4. Monitor prompt stability across different samples

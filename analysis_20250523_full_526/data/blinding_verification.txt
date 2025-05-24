@@ -1,0 +1,26 @@
+
+BLINDING VERIFICATION REPORT
+===========================
+Generated: 2025-05-23 16:55:29.119338
+
+Original Dataset:
+- Total essays: 526
+- Columns: TID, criterion, judgement, original
+
+Blinded Dataset:
+- Total essays: 526
+- Columns: id, text
+- File: essays_blinded_526.csv
+
+Hidden Labels:
+- Human judgments (1-10 scale)
+- Education criterion
+- File: labels_hidden_526.csv
+
+Verification:
+✓ No human judgments in blinded data
+✓ No education labels in blinded data
+✓ Only ID and text provided to LLM
+✓ Labels stored separately for post-hoc evaluation
+
+This ensures the LLM analysis is completely blind to human assessments.

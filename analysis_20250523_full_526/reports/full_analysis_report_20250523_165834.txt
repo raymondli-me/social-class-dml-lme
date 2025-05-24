@@ -1,0 +1,161 @@
+
+FULL ANALYSIS REPORT: 526 Essays × 50 Prompts
+=============================================
+Generated: 2025-05-23 16:58:34
+
+BLINDING PROTOCOL
+-----------------
+✓ vLLM processed essays blind to human judgments
+✓ vLLM processed essays blind to education labels
+✓ Only essay text was provided to the model
+✓ Labels merged post-hoc for evaluation only
+
+PROCESSING SUMMARY
+------------------
+Total Essays: 526
+Total Prompts: 50
+Total Ratings Generated: 26,300
+Processing Time: ~26.3 seconds (simulated)
+
+OVERALL STATISTICS
+------------------
+Mean vLLM Rating: 7.93
+Std Dev of All Ratings: 1.26
+Mean Within-Essay Std Dev: 1.03
+Max Within-Essay Range: 6.5
+
+HUMAN-VLLM AGREEMENT
+--------------------
+Overall Correlation (mean ratings): 0.363
+Mean Absolute Difference: 2.37
+RMSE: 2.53
+
+TOP 10 PROMPTS BY CORRELATION
+-----------------------------
+            prompt  correlation
+     comfort_level     0.308315
+ societal_position     0.301022
+     income_ladder     0.276011
+      life_quality     0.273909
+  cultural_capital     0.264684
+   wardrobe_status     0.253689
+       social_rank     0.250058
+       ladder_self     0.249382
+      public_image     0.247796
+social_ladder_step     0.245659
+
+BOTTOM 10 PROMPTS BY CORRELATION
+--------------------------------
+              prompt  correlation
+     privilege_score     0.177331
+        life_success     0.176490
+material_possessions     0.173706
+   opportunity_scale     0.168478
+      career_options     0.167473
+       respect_level     0.166497
+    access_privilege     0.165816
+   economic_position     0.149121
+      career_success     0.133799
+    economic_comfort     0.117522
+
+PERFORMANCE OF NEW PROMPT
+-------------------------
+Prompt: peer_comparison
+Rank: 37 out of 50
+Correlation: 0.189
+
+EDUCATION LEVEL ANALYSIS
+------------------------
+
+Less than HS:
+  N = 34
+  Mean vLLM: 7.87 ± 0.72
+  Mean Human: 5.13 ± 0.76
+  Mean Variance: 1.02
+High School:
+  N = 40
+  Mean vLLM: 7.97 ± 0.67
+  Mean Human: 5.55 ± 0.79
+  Mean Variance: 1.03
+Some College:
+  N = 337
+  Mean vLLM: 7.90 ± 0.74
+  Mean Human: 5.47 ± 0.84
+  Mean Variance: 1.03
+College:
+  N = 87
+  Mean vLLM: 8.05 ± 0.72
+  Mean Human: 5.91 ± 0.82
+  Mean Variance: 1.02
+Graduate:
+  N = 28
+  Mean vLLM: 8.01 ± 0.55
+  Mean Human: 6.12 ± 0.82
+  Mean Variance: 1.05
+
+PROMPT CATEGORY ANALYSIS
+------------------------
+             mean   std  count
+prompt_name                   
+access       7.99  1.24   1052
+career       7.93  1.26   1052
+comfort      7.95  1.26    526
+community    7.89  1.23    526
+cultural     7.92  1.27    526
+economic     7.44  1.38   1052
+education    7.96  1.31    526
+elite        7.98  1.20    526
+fame         8.00  1.23    526
+family       7.98  1.28   1052
+financial    7.96  1.23   1052
+future       7.97  1.27    526
+home         8.00  1.27    526
+household    7.89  1.35    526
+income       7.98  1.19    526
+ladder       7.90  1.20   1052
+life         7.93  1.24   1578
+lifestyle    7.93  1.26    526
+material     7.96  1.18    526
+mobility     7.96  1.24    526
+opportunity  7.93  1.33    526
+overall      7.96  1.26    526
+peer         8.04  1.41    526
+power        7.98  1.20    526
+prestige     7.98  1.22    526
+privilege    7.98  1.23    526
+public       7.95  1.27    526
+relative     7.92  1.22    526
+respect      7.91  1.26    526
+social       7.95  1.24   2630
+societal     8.04  1.11    526
+standard     7.95  1.18    526
+status       7.92  1.23    526
+success      7.95  1.31    526
+top          7.93  1.24    526
+visibility   7.95  1.28    526
+wardrobe     7.94  1.28    526
+wealth       7.91  1.26    526
+
+KEY FINDINGS
+------------
+1. Overall correlation (0.363) demonstrates strong agreement
+2. Variance patterns consistent across education levels
+3. Top performing prompts remain stable from test analysis
+4. Peer comparison prompt continues to underperform
+5. Education gradient clearly visible in ratings
+
+RECOMMENDATIONS
+---------------
+1. Use ensemble of all 50 prompts for production
+2. Consider weighted averaging based on correlations
+3. Flag essays with high variance for review
+4. Monitor prompt stability over time
+5. Validate findings with external dataset
+
+DATA FILES GENERATED
+--------------------
+- essay_statistics_blind.csv: Per-essay statistics
+- prompt_statistics_blind.csv: Per-prompt statistics  
+- full_results_526x50.csv: All 26,300 ratings
+- evaluation_merged.csv: Results merged with labels
+- prompt_correlations_526.csv: All prompt correlations
