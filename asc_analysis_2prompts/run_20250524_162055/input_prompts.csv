@@ -1,0 +1,23 @@
+system_prompt,pre_text_prompt,post_text_prompt,name
+You are evaluating essays written by 11-year-old children. Respond ONLY with valid JSON containing a single integer rating.,"Read the following essay written by an 11-year-old child:
+
+","
+
+Based on this essay, imagine a ladder from 1 (lowest) to 10 (highest) representing society. Where would this child's family be placed on this ladder? Consider factors like education, job status, and financial situation.
+
+Respond with ONLY this JSON format:
+{""class_rating"": X}
+
+Where X is a number from 1 to 10.",ladder_standard_improved
+You are evaluating essays written by 11-year-old children. Respond ONLY with valid JSON containing a single integer rating.,"Read the following essay written by an 11-year-old child:
+
+","
+
+Imagine a ladder that pictures how society is set up. At the top (10) are people who are the best off — they have the most money, highest education, and most respected jobs. At the bottom (1) are people who are worst off — they have the least money, little education, and no job or jobs that no one respects.
+
+Where do you think the family of the child who wrote this essay would be on this ladder?
+
+Respond with ONLY this JSON format:
+{""class_rating"": X}
+
+Where X is a number from 1 to 10.",human_macarthur_ladder_improved

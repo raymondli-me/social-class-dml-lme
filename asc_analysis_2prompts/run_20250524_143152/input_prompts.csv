@@ -1,0 +1,3 @@
+system_prompt,pre_text_prompt,post_text_prompt,name
+Return JSON with 'class_rating' (1 to 10).,"On a ladder from 1 (lowest) to 10 (highest), where would this person place themselves in society? ",,ladder_standard
+Return JSON with 'status_level' (1 to 10).,Rate this person's status in society from 1 (low) to 10 (high): ,,status_rating
