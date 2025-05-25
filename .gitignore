@@ -1,12 +1,40 @@
-# Allow all CSV files
-!*.csv
-
-# Exclude Python and system files
+# Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
 venv/
+env/
+*.egg-info/
+
+# Large data files
+*.pkl
+*.npy
+*.h5
+*.hdf5
+*.npz
+
+# OpenAI API key
+.env.openai
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
 .DS_Store
-*.log
-*.tmp
+Thumbs.db
+
+# IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Large checkpoint files
+openai_checkpoints/*.pkl
+openai_checkpoints/*.npy
