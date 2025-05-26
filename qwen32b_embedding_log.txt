@@ -1,0 +1,101 @@
+/home/raymondli/.local/lib/python3.10/site-packages/awq/__init__.py:21: DeprecationWarning: 
+I have left this message as the final dev message to help you transition.
+
+Important Notice:
+- AutoAWQ is officially deprecated and will no longer be maintained.
+- The last tested configuration used Torch 2.6.0 and Transformers 4.51.3.
+- If future versions of Transformers break AutoAWQ compatibility, please report the issue to the Transformers project.
+
+Alternative:
+- AutoAWQ has been adopted by the vLLM Project: https://github.com/vllm-project/llm-compressor
+
+For further inquiries, feel free to reach out:
+- X: https://x.com/casper_hansen_
+- LinkedIn: https://www.linkedin.com/in/casper-hansen-804005170/
+
+  warnings.warn(_FINAL_DEV_MESSAGE, category=DeprecationWarning, stacklevel=1)
+================================================================================
+QWEN2.5-32B-AWQ EMBEDDING EXTRACTION
+================================================================================
+Using PyTorch version: 2.6.0+cu124
+Using Transformers version: 4.52.3
+Available GPUs: 4
+
+=== Loading Essays ===
+✓ Loaded 9513 essays
+⚠️  TEST MODE: Using only 100 essays
+
+=== Loading Qwen/Qwen2.5-32B-Instruct-AWQ ===
+This will use 2 GPUs as configured in your VLLM setup...
+Loading checkpoint shards:   0%|          | 0/5 [00:00<?, ?it/s]Loading checkpoint shards:  20%|██        | 1/5 [00:03<00:12,  3.18s/it]Loading checkpoint shards:  40%|████      | 2/5 [00:06<00:09,  3.19s/it]Loading checkpoint shards:  60%|██████    | 3/5 [00:09<00:06,  3.26s/it]Loading checkpoint shards:  80%|████████  | 4/5 [00:13<00:03,  3.48s/it]Loading checkpoint shards: 100%|██████████| 5/5 [00:17<00:00,  3.57s/it]Loading checkpoint shards: 100%|██████████| 5/5 [00:17<00:00,  3.46s/it]
+✓ Model and tokenizer loaded successfully
+
+Device mapping:
+  model.embed_tokens: 0
+  model.layers.0: 0
+  model.layers.1: 0
+  model.layers.2: 0
+  model.layers.3: 0
+  ...
+
+=== Embedding Layer Info ===
+Type: <class 'torch.nn.modules.sparse.Embedding'>
+Vocab Size: 152064
+Embedding Dimension: 5120
+
+=== Extracting Embeddings ===
+Processing 100 essays in batches of 2...
+Note: Embedding raw essays without instruction prefix for fair comparison
+Processing batches:   0%|          | 0/50 [00:00<?, ?it/s]Processing batches:   2%|▏         | 1/50 [00:00<00:08,  5.74it/s]Processing batches:  12%|█▏        | 6/50 [00:00<00:01, 24.31it/s]Processing batches:  22%|██▏       | 11/50 [00:00<00:01, 32.38it/s]Processing batches:  32%|███▏      | 16/50 [00:00<00:00, 35.65it/s]Processing batches:  42%|████▏     | 21/50 [00:00<00:00, 39.99it/s]Processing batches:  52%|█████▏    | 26/50 [00:00<00:00, 41.37it/s]Processing batches:  62%|██████▏   | 31/50 [00:00<00:00, 42.29it/s]Processing batches:  72%|███████▏  | 36/50 [00:00<00:00, 42.15it/s]Processing batches:  82%|████████▏ | 41/50 [00:01<00:00, 42.19it/s]Processing batches:  92%|█████████▏| 46/50 [00:01<00:00, 41.87it/s]Processing batches: 100%|██████████| 50/50 [00:01<00:00, 41.16it/s]
+
+✓ Extraction complete!
+Time: 1.2 seconds (82.2 essays/sec)
+Embeddings shape: (100, 5120)
+
+=== Saving Results ===
+✓ Saved embeddings to /media/raymondli/Crucial X9/2025_05_23_VLLM_IPAD_ANALYSES/2025_05_23_social_class_dml_lme/qwen32b_embeddings/qwen32b_awq_embeddings_test.npy
+✓ Saved essay IDs to /media/raymondli/Crucial X9/2025_05_23_VLLM_IPAD_ANALYSES/2025_05_23_social_class_dml_lme/qwen32b_embeddings/qwen32b_awq_essay_ids_test.npy
+
+=== Embedding Analysis ===
+Shape: (100, 5120)
+Dimensions: 5120
+Data type: float32
+Memory usage: 2.0 MB
+
+Norm statistics:
+  Mean: 0.39
+  Std: 0.03
+  Min: 0.34
+  Max: 0.53
+
+Sample similarity matrix (first 10 essays):
+  Mean similarity: 0.848
+  Std similarity: 0.075
+  Min similarity: 0.672
+  Max similarity: 1.000
+
+================================================================================
+NEXT STEPS:
+================================================================================
+
+1. If test successful, run on full dataset:
+   - Edit script: TEST_MODE = False
+   - Run again (will take ~1-2 hours for 9,513 essays)
+
+2. Process embeddings for DML:
+   - Apply PCA reduction (e.g., to 200-500 components)
+   - Run same analysis pipeline as other embeddings
+
+3. Compare with other models:
+   - OpenAI: R²(AI)=0.923, R²(SC)=0.537
+   - NV-Embed: R²(AI)=0.597, R²(SC)=0.073
+   - MPNet: R²(AI)=0.451, R²(SC)=0.050
+
+4. Expected characteristics:
+   - Qwen-32B embeddings dimension: ~5120
+   - Should capture rich semantic information
+   - May perform differently than dedicated embedding models
+   - Interesting to see if scale (32B) beats specialization
+
+
+✓ Cleaned up GPU memory
