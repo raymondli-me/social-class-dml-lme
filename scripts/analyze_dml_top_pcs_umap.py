@@ -324,7 +324,12 @@ html_template = """
         .checkbox-group input {{ margin-right: 5px; }}
         #tooltip {{ position: absolute; padding: 10px; background: rgba(0,0,0,0.95); color: white; 
                    border-radius: 5px; pointer-events: none; display: none; max-width: 500px; 
-                   font-size: 12px; border: 1px solid #666; }}
+                   font-size: 12px; border: 2px solid #666; transition: border-color 0.2s; }}
+        #tooltip .clickable {{ pointer-events: auto; cursor: pointer; text-decoration: underline; }}
+        #full-text {{ position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,0.95);
+                     padding: 15px; border-radius: 5px; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                     max-width: 600px; max-height: 300px; overflow-y: auto; display: none; }}
+        #full-text h4 {{ margin-top: 0; }}
         table {{ width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }}
         th, td {{ padding: 5px; text-align: left; border-bottom: 1px solid #444; }}
         th {{ background: #222; font-weight: bold; }}
@@ -408,6 +413,7 @@ html_template = """
         {pc_controls}
     </div>
     <div id="tooltip"></div>
+    <div id="full-text"></div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -525,17 +531,9 @@ html_template = """
         const points = new THREE.Points(geometry, material);
         scene.add(points);
         
-        // Create highlight sphere for hover
-        const highlightGeometry = new THREE.SphereGeometry(4, 16, 16);  // Scaled up for visibility
-        const highlightMaterial = new THREE.MeshBasicMaterial({{
-            color: 0xffff00,
-            transparent: true,
-            opacity: 0,
-            wireframe: true
-        }});
-        const highlightSphere = new THREE.Mesh(highlightGeometry, highlightMaterial);
-        highlightSphere.visible = false;
-        scene.add(highlightSphere);
+        // Track hovered point for color-matched tooltip
+        let hoveredPointColor = null;
+        let currentEssay = null;
         
         // Center camera
         const centerX = (minX + maxX) / 2;
@@ -700,7 +698,7 @@ html_template = """
             geometry.attributes.position.needsUpdate = true;
             
             // Update highlight sphere scale
-            highlightSphere.scale.set(newScale, newScale, newScale);
+            // Scale updated (highlight sphere removed)
             
             // Update camera target to new center
             const centerX = (minX + maxX) / 2;
@@ -769,8 +767,8 @@ html_template = """
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         
-        // Custom raycaster that respects point sizes
-        raycaster.params.Points.threshold = 3;  // Adjusted for larger point sizes
+        // Custom raycaster with generous threshold
+        raycaster.params.Points.threshold = 10;  // More generous for better hover detection
         
         function onMouseMove(event) {{
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -778,7 +776,7 @@ html_template = """
             
             // Update raycaster threshold based on current point size
             const currentSize = parseFloat(document.getElementById('point-size').value);
-            raycaster.params.Points.threshold = currentSize / 2;
+            raycaster.params.Points.threshold = currentSize * 2;  // More generous threshold
             
             raycaster.setFromCamera(mouse, camera);
             
@@ -809,12 +807,17 @@ html_template = """
                 if (visibleIntersect) {{
                     const idx = visibleIntersect.index;
                     const d = data[idx];
+                    currentEssay = d;
                     
-                    // Position highlight sphere
-                    const pos = visibleIntersect.point;
-                    highlightSphere.position.copy(pos);
-                    highlightSphere.visible = true;
-                    highlightMaterial.opacity = 0.5;
+                    // Get the color of the hovered point
+                    const colors = geometry.attributes.color.array;
+                    const r = Math.floor(colors[idx * 3] * 255);
+                    const g = Math.floor(colors[idx * 3 + 1] * 255);
+                    const b = Math.floor(colors[idx * 3 + 2] * 255);
+                    hoveredPointColor = `rgb(${{r}}, ${{g}}, ${{b}})`;
+                    
+                    // Update tooltip border to match point color
+                    tooltip.style.borderColor = hoveredPointColor;
                 
                 let pcInfo = '<div style="background: #1a1a1a; padding: 8px; border-radius: 4px; margin-top: 5px;">';
                 pcInfo += '<div style="color: #888; font-size: 10px; margin-bottom: 5px;">TOP 5 PRINCIPAL COMPONENTS</div>';
@@ -853,7 +856,9 @@ html_template = """
                     </div>
                     <div class="tooltip-section">
                         <div style="color: #888; font-size: 10px; margin-bottom: 3px;">Essay Preview:</div>
-                        <div style="font-style: italic; color: #ccc;">"${{d.essay.substring(0, 150)}}..."</div>
+                        <div style="font-style: italic; color: #ccc; line-height: 1.4;">
+                            "${{d.essay.substring(0, 300)}}${{d.essay.length > 300 ? '...' : ''}}"
+                        </div>
                     </div>
                     <div class="tooltip-section">
                         ${{pcInfo}}
@@ -865,15 +870,34 @@ html_template = """
                 tooltip.style.top = event.clientY + 10 + 'px';
                 }} else {{
                     tooltip.style.display = 'none';
-                    highlightSphere.visible = false;
+                    currentEssay = null;
                 }}
             }} else {{
                 tooltip.style.display = 'none';
-                highlightSphere.visible = false;
+                currentEssay = null;
             }}
         }}
         
         window.addEventListener('mousemove', onMouseMove);
+        
+        // Function to show full text
+        window.showFullText = function() {{
+            if (currentEssay) {{
+                const fullTextDiv = document.getElementById('full-text');
+                fullTextDiv.innerHTML = `
+                    <h4>Essay #${{currentEssay.essay_id}} - Full Text</h4>
+                    <div style="margin-bottom: 10px;">
+                        <strong>Social Class:</strong> ${{currentEssay.sc11}} | 
+                        <strong>AI Rating:</strong> ${{currentEssay.ai_rating.toFixed(2)}}
+                    </div>
+                    <div style="font-style: italic; line-height: 1.5;">
+                        ${{currentEssay.essay}}
+                    </div>
+                    <button onclick="document.getElementById('full-text').style.display='none'" style="margin-top: 10px;">Close</button>
+                `;
+                fullTextDiv.style.display = 'block';
+            }}
+        }};
         
         // PC filter functions
         function togglePCFilter(pc) {{

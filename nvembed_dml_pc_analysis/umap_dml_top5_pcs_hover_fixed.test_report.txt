@@ -1,0 +1,16 @@
+UMAP Visualization Test Report
+============================================================
+File: /media/raymondli/Crucial X9/2025_05_23_VLLM_IPAD_ANALYSES/2025_05_23_social_class_dml_lme/nvembed_dml_pc_analysis/umap_dml_top5_pcs_hover_fixed.html
+Data points: N/A
+
+
+Test Results:
+  PASS: HTML Loading - HTML loaded successfully
+  FAIL: Data Extraction - Failed to extract data: Unterminated string starting at: line 1 column 3036838 (char 3036837)
+  FAIL: World Coordinates - World coordinate test failed: 'NoneType' object is not subscriptable
+  PASS: Custom Raycasting - Custom raycasting implementation found
+  PASS: Scale Synchronization - Scale synchronization implemented correctly
+  PASS: Hidden Point Handling - Hidden points properly handled
+  FAIL: Debug Mode - Debug info update code not found
+  PASS: Highlight Sphere - Highlight sphere positioning correct
+  FAIL: PC Data Integrity - PC data test failed: 'NoneType' object is not subscriptable

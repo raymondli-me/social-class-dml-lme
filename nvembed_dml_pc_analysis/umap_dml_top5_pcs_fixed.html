@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UMAP 3D Visualization - DML Top 5 PCs Analysis (Fixed Hover)</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 300px;
+            max-height: 90vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        .control-group {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            color: #4a9eff;
+            font-size: 14px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        #tooltip {
+            position: absolute;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #4a9eff;
+            border-radius: 5px;
+            pointer-events: none;
+            display: none;
+            z-index: 1000;
+            max-width: 400px;
+            font-size: 12px;
+        }
+        #info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        select {
+            width: 100%;
+            padding: 5px;
+            background: #333;
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 3px;
+            margin-bottom: 5px;
+        }
+        .value-display {
+            display: inline-block;
+            width: 40px;
+            text-align: right;
+            color: #4a9eff;
+        }
+        .pc-score {
+            font-size: 11px;
+            color: #aaa;
+        }
+        .pc-score b {
+            color: #4a9eff;
+        }
+        .essay-excerpt {
+            font-style: italic;
+            color: #ccc;
+            margin-top: 5px;
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 2px solid #4a9eff;
+            font-size: 11px;
+        }
+        .metrics-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 2px 0;
+        }
+        #debug-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 10px;
+            font-family: monospace;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <div id="controls">
+        <h2 style="margin: 0 0 15px 0; color: #4a9eff;">UMAP Visualization Controls</h2>
+        
+        <div class="control-group">
+            <h3>View Settings</h3>
+            <label>
+                Point Size: <span id="size-val" class="value-display">6</span>
+            </label>
+            <input type="range" id="point-size" min="0.5" max="20" value="6" step="0.5">
+            
+            <label>
+                Point Opacity: <span id="opacity-val" class="value-display">0.8</span>
+            </label>
+            <input type="range" id="point-opacity" min="0.1" max="1" value="0.8" step="0.1">
+            
+            <label>
+                Cloud Scale: <span id="scale-val" class="value-display">4.0</span>x
+            </label>
+            <input type="range" id="cloud-scale" min="0.5" max="10" value="4.0" step="0.1">
+        </div>
+        
+        <div class="control-group">
+            <h3>Color Mode</h3>
+            <select id="color-mode">
+                <option value="social_class">Social Class (Categories)</option>
+                <option value="social_class_gradient">Social Class (Gradient)</option>
+                <option value="ai_rating">AI Rating (Gradient)</option>
+                <option value="pc1">PC 1 (Gradient)</option>
+                <option value="pc2">PC 2 (Gradient)</option>
+                <option value="pc3">PC 3 (Gradient)</option>
+                <option value="pc4">PC 4 (Gradient)</option>
+                <option value="pc5">PC 5 (Gradient)</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <h3>Social Class Filter</h3>
+            <div class="checkbox-group">
+                <div class="checkbox-item">
+                    <input type="checkbox" id="sc-1" checked>
+                    <label for="sc-1">Lower (1)</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="sc-2" checked>
+                    <label for="sc-2">Working (2)</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="sc-3" checked>
+                    <label for="sc-3">Middle (3)</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="sc-4" checked>
+                    <label for="sc-4">Upper-Mid (4)</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="sc-5" checked>
+                    <label for="sc-5">Upper (5)</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h3>PC Percentile Filter</h3>
+            <label>
+                Show Top/Bottom: <span id="percentile-val" class="value-display">10</span>%
+            </label>
+            <input type="range" id="percentile-filter" min="5" max="50" value="10" step="5">
+            <select id="pc-filter-select">
+                <option value="none">No PC Filter</option>
+                <option value="pc1">PC 1 Extremes</option>
+                <option value="pc2">PC 2 Extremes</option>
+                <option value="pc3">PC 3 Extremes</option>
+                <option value="pc4">PC 4 Extremes</option>
+                <option value="pc5">PC 5 Extremes</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <h3>Model Performance</h3>
+            <div class="metrics-row">
+                <span>AI R² (Full):</span>
+                <span style="color: #4a9eff;">0.597</span>
+            </div>
+            <div class="metrics-row">
+                <span>AI R² (Top 5):</span>
+                <span style="color: #ff9f4a;">0.526</span>
+            </div>
+            <div class="metrics-row">
+                <span>SC R² (Full):</span>
+                <span style="color: #4a9eff;">0.073</span>
+            </div>
+            <div class="metrics-row">
+                <span>SC R² (Top 5):</span>
+                <span style="color: #ff9f4a;">0.061</span>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h3>DML Results</h3>
+            <div class="metrics-row">
+                <span>Text+SC→AI:</span>
+                <span style="color: #4aff9f;">0.632</span>
+            </div>
+            <div class="metrics-row">
+                <span>Text+AI→SC:</span>
+                <span style="color: #ff4a9f;">0.154</span>
+            </div>
+            <div class="metrics-row">
+                <span>DML θ:</span>
+                <span style="color: #ffff4a;">0.0016</span>
+            </div>
+            <div class="metrics-row">
+                <span>p-value:</span>
+                <span style="color: #4affff;">0.0303</span>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <label>
+                <input type="checkbox" id="debug-mode"> Show Debug Info
+            </label>
+        </div>
+    </div>
+    
+    <div id="tooltip"></div>
+    <div id="info">
+        <div>Total Points: <span id="total-points">9513</span></div>
+        <div>Visible Points: <span id="visible-points">9513</span></div>
+        <div>Camera Distance: <span id="camera-distance">0</span></div>
+    </div>
+    
+    <div id="debug-info"></div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Data embedded from Python
+        const data = @@DATA@@;
+        
+        // Extract top PCs and their importance
+        const topPCs = [1, 2, 3, 4, 5];
+        const pcImportance = {
+            1: 0.0892,
+            2: 0.0854,
+            3: 0.0831,
+            4: 0.0793,
+            5: 0.0762
+        };
+        
+        // Set up Three.js scene
+        const container = document.getElementById('container');
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1e1e1e);
+        
+        const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 10000);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(width, height);
+        container.appendChild(renderer.domElement);
+        
+        // Create geometry
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(data.length * 3);
+        const colors = new Float32Array(data.length * 3);
+        const sizes = new Float32Array(data.length);
+        
+        // Color schemes
+        const scColors = [
+            [1, 0.2, 0.2],    // Red - Lower
+            [1, 0.6, 0.2],    // Orange - Working
+            [1, 1, 0.2],      // Yellow - Middle
+            [0.2, 1, 0.2],    // Green - Upper-middle
+            [0.2, 0.2, 1]     // Blue - Upper
+        ];
+        
+        // Store original positions for scaling
+        const originalPositions = new Float32Array(data.length * 3);
+        data.forEach((d, i) => {
+            originalPositions[i * 3] = d.x;
+            originalPositions[i * 3 + 1] = d.y;
+            originalPositions[i * 3 + 2] = d.z;
+        });
+        
+        // Initial scale factor
+        let currentScaleFactor = 4.0;
+        
+        // Store world positions in data for consistent hover detection
+        data.forEach((d, i) => {
+            // Store scaled world positions
+            d.worldX = d.x * currentScaleFactor;
+            d.worldY = d.y * currentScaleFactor;
+            d.worldZ = d.z * currentScaleFactor;
+            
+            positions[i * 3] = d.worldX;
+            positions[i * 3 + 1] = d.worldY;
+            positions[i * 3 + 2] = d.worldZ;
+            
+            const sc = d.sc11 - 1;
+            colors[i * 3] = scColors[sc][0];
+            colors[i * 3 + 1] = scColors[sc][1];
+            colors[i * 3 + 2] = scColors[sc][2];
+            
+            sizes[i] = 6;  // Larger initial size
+        });
+        
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+        
+        // Custom shader material with proper size handling
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                opacity: { value: 0.8 },
+                scale: { value: 1.0 }  // For consistent size calculation
+            },
+            vertexShader: `
+                attribute float size;
+                attribute vec3 color;
+                varying vec3 vColor;
+                varying float vSize;
+                
+                void main() {
+                    vColor = color;
+                    vSize = size;
+                    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                    gl_PointSize = size * 300.0 / -mvPosition.z;  // Consistent size calculation
+                    gl_Position = projectionMatrix * mvPosition;
+                }
+            `,
+            fragmentShader: `
+                uniform float opacity;
+                varying vec3 vColor;
+                varying float vSize;
+                
+                void main() {
+                    if (vSize == 0.0) discard;  // Don't render hidden points
+                    float dist = length(gl_PointCoord - vec2(0.5, 0.5));
+                    if (dist > 0.5) discard;
+                    gl_FragColor = vec4(vColor, opacity);
+                }
+            `,
+            transparent: true,
+            depthTest: true,
+            depthWrite: false
+        });
+        
+        const points = new THREE.Points(geometry, material);
+        scene.add(points);
+        
+        // Add highlight sphere for hover
+        const highlightGeometry = new THREE.SphereGeometry(2, 16, 16);
+        const highlightMaterial = new THREE.MeshBasicMaterial({
+            color: 0x4a9eff,
+            transparent: true,
+            opacity: 0.3
+        });
+        const highlightSphere = new THREE.Mesh(highlightGeometry, highlightMaterial);
+        highlightSphere.visible = false;
+        scene.add(highlightSphere);
+        
+        // Calculate bounds and center camera
+        let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity, maxY = -Infinity; 
+        let minZ = Infinity, maxZ = -Infinity;
+        
+        data.forEach(d => {
+            minX = Math.min(minX, d.worldX);
+            maxX = Math.max(maxX, d.worldX);
+            minY = Math.min(minY, d.worldY);
+            maxY = Math.max(maxY, d.worldY);
+            minZ = Math.min(minZ, d.worldZ);
+            maxZ = Math.max(maxZ, d.worldZ);
+        });
+        
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+        const centerZ = (minZ + maxZ) / 2;
+        
+        camera.position.set(centerX + 150, centerY + 150, centerZ + 150);
+        camera.lookAt(centerX, centerY, centerZ);
+        
+        // Camera controls
+        let mouseX = 0, mouseY = 0;
+        let targetX = 0, targetY = 0;
+        
+        document.addEventListener('mousemove', (e) => {
+            if (e.buttons === 1) {  // Left mouse button
+                targetX = (e.clientX - width / 2) * 0.005;
+                targetY = (e.clientY - height / 2) * 0.005;
+            }
+        });
+        
+        // Raycaster for hover with custom implementation
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        raycaster.params.Points.threshold = 0.5;  // Start with smaller threshold
+        
+        // Custom raycasting function that accounts for point size and scale
+        function performRaycast() {
+            raycaster.setFromCamera(mouse, camera);
+            
+            // Get visible points only
+            const visibleData = [];
+            const sizes = geometry.attributes.size.array;
+            
+            for (let i = 0; i < data.length; i++) {
+                if (sizes[i] > 0) {
+                    visibleData.push({
+                        index: i,
+                        position: new THREE.Vector3(
+                            data[i].worldX,
+                            data[i].worldY,
+                            data[i].worldZ
+                        ),
+                        size: sizes[i]
+                    });
+                }
+            }
+            
+            // Calculate dynamic threshold based on camera distance
+            const cameraDistance = camera.position.length();
+            const baseSizeOnScreen = 300.0;  // Match shader constant
+            
+            // Find closest visible point
+            let closestPoint = null;
+            let closestDistance = Infinity;
+            
+            for (const point of visibleData) {
+                const worldPos = point.position;
+                const distance = raycaster.ray.distanceToPoint(worldPos);
+                
+                // Calculate screen-space size for this point
+                const pointDistance = worldPos.distanceTo(camera.position);
+                const screenSize = (point.size * baseSizeOnScreen) / pointDistance;
+                const worldThreshold = (screenSize * pointDistance) / baseSizeOnScreen;
+                
+                if (distance < worldThreshold && distance < closestDistance) {
+                    closestDistance = distance;
+                    closestPoint = point;
+                }
+            }
+            
+            return closestPoint;
+        }
+        
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            const hoveredPoint = performRaycast();
+            
+            if (hoveredPoint) {
+                const idx = hoveredPoint.index;
+                const d = data[idx];
+                
+                // Position highlight sphere at world coordinates
+                highlightSphere.position.set(d.worldX, d.worldY, d.worldZ);
+                highlightSphere.visible = true;
+                highlightMaterial.opacity = 0.5;
+                
+                // Build tooltip content
+                let pcInfo = '<div style="background: #1a1a1a; padding: 8px; border-radius: 4px; margin-top: 5px;">';
+                pcInfo += '<div style="color: #888; font-size: 10px; margin-bottom: 5px;">TOP 5 PRINCIPAL COMPONENTS</div>';
+                
+                for (const pc of topPCs) {
+                    const zscore = d[`pc${pc}_zscore`];
+                    const percentile = d[`pc${pc}_percentile`];
+                    const shapAI = d[`pc${pc}_shap_ai`];
+                    const shapSC = d[`pc${pc}_shap_sc`];
+                    const importance = pcImportance[pc];
+                    
+                    pcInfo += `
+                        <div style="margin-bottom: 8px; padding: 5px; background: #222; border-radius: 3px;">
+                            <div class="pc-score">
+                                <b>PC ${pc}</b> (${(importance * 100).toFixed(1)}% importance)
+                            </div>
+                            <div class="pc-score">
+                                Z-score: <b>${zscore > 0 ? '+' : ''}${zscore.toFixed(2)}</b> | 
+                                Percentile: <b>${percentile.toFixed(0)}</b>
+                            </div>
+                            <div class="pc-score" style="color: #4a9eff;">
+                                AI contribution: ${shapAI > 0 ? '+' : ''}${shapAI.toFixed(3)}
+                            </div>
+                            <div class="pc-score" style="color: #ff9f4a;">
+                                SC contribution: ${shapSC > 0 ? '+' : ''}${shapSC.toFixed(3)}
+                            </div>
+                        </div>
+                    `;
+                }
+                pcInfo += '</div>';
+                
+                const tooltip = document.getElementById('tooltip');
+                tooltip.innerHTML = `
+                    <div><b>Essay #${d.TID}</b></div>
+                    <div>Social Class: <b>${d.sc11}</b> | AI Rating: <b>${d.rating.toFixed(2)}</b></div>
+                    ${pcInfo}
+                    <div class="essay-excerpt">"${d.essay_excerpt}..."</div>
+                `;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (event.clientX + 10) + 'px';
+                tooltip.style.top = (event.clientY + 10) + 'px';
+                
+                // Debug info
+                if (document.getElementById('debug-mode').checked) {
+                    const debugInfo = document.getElementById('debug-info');
+                    debugInfo.innerHTML = `
+                        Point Index: ${idx}<br>
+                        World Pos: (${d.worldX.toFixed(2)}, ${d.worldY.toFixed(2)}, ${d.worldZ.toFixed(2)})<br>
+                        Size: ${hoveredPoint.size}<br>
+                        Distance: ${closestDistance.toFixed(4)}<br>
+                        Camera Dist: ${camera.position.length().toFixed(2)}
+                    `;
+                    debugInfo.style.display = 'block';
+                }
+            } else {
+                document.getElementById('tooltip').style.display = 'none';
+                highlightSphere.visible = false;
+                document.getElementById('debug-info').style.display = 'none';
+            }
+        }
+        
+        document.addEventListener('mousemove', onMouseMove);
+        
+        // Control functions
+        function updatePointSize() {
+            const size = parseFloat(document.getElementById('point-size').value);
+            document.getElementById('size-val').textContent = size;
+            const sizes = geometry.attributes.size.array;
+            const pcFilter = document.getElementById('pc-filter-select').value;
+            const percentileThreshold = parseFloat(document.getElementById('percentile-filter').value);
+            
+            for (let i = 0; i < data.length; i++) {
+                if (isPointVisible(i, pcFilter, percentileThreshold)) {
+                    sizes[i] = size;
+                }
+            }
+            geometry.attributes.size.needsUpdate = true;
+        }
+        
+        function updateOpacity() {
+            const opacity = parseFloat(document.getElementById('point-opacity').value);
+            document.getElementById('opacity-val').textContent = opacity;
+            material.uniforms.opacity.value = opacity;
+        }
+        
+        function updateCloudScale() {
+            const newScale = parseFloat(document.getElementById('cloud-scale').value);
+            document.getElementById('scale-val').textContent = newScale;
+            currentScaleFactor = newScale;
+            
+            // Update all positions and world coordinates
+            const positions = geometry.attributes.position.array;
+            
+            for (let i = 0; i < data.length; i++) {
+                // Update world coordinates in data
+                data[i].worldX = originalPositions[i * 3] * newScale;
+                data[i].worldY = originalPositions[i * 3 + 1] * newScale;
+                data[i].worldZ = originalPositions[i * 3 + 2] * newScale;
+                
+                // Update geometry positions
+                positions[i * 3] = data[i].worldX;
+                positions[i * 3 + 1] = data[i].worldY;
+                positions[i * 3 + 2] = data[i].worldZ;
+            }
+            
+            geometry.attributes.position.needsUpdate = true;
+            
+            // Update camera to maintain view
+            const centerX = (data[0].worldX + data[data.length-1].worldX) / 2;
+            const centerY = (data[0].worldY + data[data.length-1].worldY) / 2; 
+            const centerZ = (data[0].worldZ + data[data.length-1].worldZ) / 2;
+            
+            camera.lookAt(centerX, centerY, centerZ);
+        }
+        
+        // Color update functions
+        function updateColors() {
+            const mode = document.getElementById('color-mode').value;
+            const colors = geometry.attributes.color.array;
+            
+            if (mode === 'social_class') {
+                data.forEach((d, i) => {
+                    const sc = d.sc11 - 1;
+                    colors[i * 3] = scColors[sc][0];
+                    colors[i * 3 + 1] = scColors[sc][1];
+                    colors[i * 3 + 2] = scColors[sc][2];
+                });
+            } else if (mode === 'social_class_gradient') {
+                data.forEach((d, i) => {
+                    const t = (d.sc11 - 1) / 4;  // Normalize to 0-1
+                    colors[i * 3] = t;
+                    colors[i * 3 + 1] = 0.2 + t * 0.6;
+                    colors[i * 3 + 2] = 1 - t;
+                });
+            } else if (mode === 'ai_rating') {
+                data.forEach((d, i) => {
+                    const t = (d.rating - 1) / 9;  // Normalize to 0-1
+                    // Dark in middle, bright at extremes
+                    const brightness = Math.abs(t - 0.5) * 2;
+                    colors[i * 3] = brightness * (t > 0.5 ? 1 : 0.5);
+                    colors[i * 3 + 1] = brightness * 0.5;
+                    colors[i * 3 + 2] = brightness * (t < 0.5 ? 1 : 0.5);
+                });
+            } else if (mode.startsWith('pc')) {
+                const pcNum = parseInt(mode.substring(2));
+                data.forEach((d, i) => {
+                    const percentile = d[`pc${pcNum}_percentile`] / 100;
+                    // Dark in middle, bright at extremes
+                    const brightness = Math.abs(percentile - 0.5) * 2;
+                    colors[i * 3] = brightness * (percentile > 0.5 ? 1 : 0.2);
+                    colors[i * 3 + 1] = brightness * 0.5;
+                    colors[i * 3 + 2] = brightness * (percentile < 0.5 ? 1 : 0.2);
+                });
+            }
+            
+            geometry.attributes.color.needsUpdate = true;
+        }
+        
+        // Filter functions
+        function isPointVisible(index, pcFilter, percentileThreshold) {
+            const d = data[index];
+            
+            // Check social class filter
+            const scCheckbox = document.getElementById(`sc-${d.sc11}`);
+            if (scCheckbox && !scCheckbox.checked) {
+                return false;
+            }
+            
+            // Check PC filter
+            if (pcFilter !== 'none') {
+                const pcNum = parseInt(pcFilter.substring(2));
+                const percentile = d[`pc${pcNum}_percentile`];
+                if (percentile > percentileThreshold && percentile < (100 - percentileThreshold)) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        function updateFilters() {
+            const sizes = geometry.attributes.size.array;
+            const currentSize = parseFloat(document.getElementById('point-size').value);
+            const pcFilter = document.getElementById('pc-filter-select').value;
+            const percentileThreshold = parseFloat(document.getElementById('percentile-filter').value);
+            
+            let visibleCount = 0;
+            
+            for (let i = 0; i < data.length; i++) {
+                if (isPointVisible(i, pcFilter, percentileThreshold)) {
+                    sizes[i] = currentSize;
+                    visibleCount++;
+                } else {
+                    sizes[i] = 0;
+                }
+            }
+            
+            geometry.attributes.size.needsUpdate = true;
+            document.getElementById('visible-points').textContent = visibleCount;
+        }
+        
+        // Event listeners
+        document.getElementById('point-size').addEventListener('input', updatePointSize);
+        document.getElementById('point-opacity').addEventListener('input', updateOpacity);
+        document.getElementById('cloud-scale').addEventListener('input', updateCloudScale);
+        document.getElementById('color-mode').addEventListener('change', updateColors);
+        document.getElementById('pc-filter-select').addEventListener('change', updateFilters);
+        document.getElementById('percentile-filter').addEventListener('input', function() {
+            document.getElementById('percentile-val').textContent = this.value;
+            updateFilters();
+        });
+        
+        // Social class checkboxes
+        for (let i = 1; i <= 5; i++) {
+            const checkbox = document.getElementById(`sc-${i}`);
+            if (checkbox) {
+                checkbox.addEventListener('change', updateFilters);
+            }
+        }
+        
+        // Debug mode toggle
+        document.getElementById('debug-mode').addEventListener('change', function() {
+            const debugInfo = document.getElementById('debug-info');
+            debugInfo.style.display = this.checked ? 'block' : 'none';
+        });
+        
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Smooth camera rotation
+            mouseX += (targetX - mouseX) * 0.05;
+            mouseY += (targetY - mouseY) * 0.05;
+            
+            const centerX = (minX + maxX) / 2 * currentScaleFactor;
+            const centerY = (minY + maxY) / 2 * currentScaleFactor;
+            const centerZ = (minZ + maxZ) / 2 * currentScaleFactor;
+            
+            camera.position.x = centerX + Math.cos(mouseX) * 200;
+            camera.position.z = centerZ + Math.sin(mouseX) * 200;
+            camera.position.y = centerY + mouseY * 50 + 150;
+            camera.lookAt(centerX, centerY, centerZ);
+            
+            // Update camera distance display
+            const distance = camera.position.length();
+            document.getElementById('camera-distance').textContent = distance.toFixed(0);
+            
+            renderer.render(scene, camera);
+        }
+        
+        animate();
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

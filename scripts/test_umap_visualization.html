@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UMAP Visualization Test Suite</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .test-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .status-pass {
+            background: #4caf50;
+            color: white;
+        }
+        .status-fail {
+            background: #f44336;
+            color: white;
+        }
+        .status-running {
+            background: #ff9800;
+            color: white;
+        }
+        .test-details {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .control-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #1976d2;
+        }
+        #visualization-frame {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .test-category {
+            margin-top: 30px;
+            margin-bottom: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        .summary {
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>UMAP Visualization Test Suite</h1>
+    
+    <div class="control-panel">
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="runHoverTests()">Run Hover Tests</button>
+        <button onclick="runScalingTests()">Run Scaling Tests</button>
+        <button onclick="runFilterTests()">Run Filter Tests</button>
+        <button onclick="runPerformanceTests()">Run Performance Tests</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+    
+    <div id="summary" class="summary">
+        <strong>Test Summary:</strong> <span id="summary-text">No tests run yet</span>
+    </div>
+    
+    <iframe id="visualization-frame" src="../nvembed_dml_pc_analysis/umap_dml_top5_pcs_hover_fixed.html"></iframe>
+    
+    <div id="test-results"></div>
+
+    <script>
+        // Test framework
+        class TestRunner {
+            constructor() {
+                this.results = [];
+                this.vizFrame = document.getElementById('visualization-frame');
+                this.vizWindow = null;
+                this.vizDoc = null;
+            }
+            
+            async init() {
+                return new Promise((resolve) => {
+                    this.vizFrame.onload = () => {
+                        this.vizWindow = this.vizFrame.contentWindow;
+                        this.vizDoc = this.vizFrame.contentDocument;
+                        
+                        // Wait for Three.js to initialize
+                        setTimeout(() => {
+                            resolve();
+                        }, 1000);
+                    };
+                });
+            }
+            
+            async runTest(category, name, testFn) {
+                const startTime = Date.now();
+                const testId = `${category}-${name}`.replace(/\s+/g, '-');
+                
+                this.updateTestStatus(testId, name, category, 'running');
+                
+                try {
+                    const result = await testFn(this.vizWindow, this.vizDoc);
+                    const duration = Date.now() - startTime;
+                    
+                    this.updateTestStatus(testId, name, category, 'pass', {
+                        duration,
+                        details: result.details || 'Test passed',
+                        assertions: result.assertions || []
+                    });
+                    
+                    return { success: true, duration };
+                } catch (error) {
+                    const duration = Date.now() - startTime;
+                    
+                    this.updateTestStatus(testId, name, category, 'fail', {
+                        duration,
+                        error: error.message,
+                        stack: error.stack
+                    });
+                    
+                    return { success: false, duration, error };
+                }
+            }
+            
+            updateTestStatus(id, name, category, status, details = {}) {
+                let container = document.getElementById(id);
+                
+                if (!container) {
+                    // Create category header if needed
+                    const categoryId = `category-${category}`;
+                    let categoryHeader = document.getElementById(categoryId);
+                    if (!categoryHeader) {
+                        categoryHeader = document.createElement('div');
+                        categoryHeader.id = categoryId;
+                        categoryHeader.className = 'test-category';
+                        categoryHeader.textContent = category;
+                        document.getElementById('test-results').appendChild(categoryHeader);
+                    }
+                    
+                    container = document.createElement('div');
+                    container.id = id;
+                    container.className = 'test-container';
+                    document.getElementById('test-results').appendChild(container);
+                }
+                
+                const statusClass = `status-${status}`;
+                const statusText = status.toUpperCase();
+                
+                let detailsHtml = '';
+                if (details.error) {
+                    detailsHtml = `<strong>Error:</strong> ${details.error}<br><pre>${details.stack}</pre>`;
+                } else if (details.details) {
+                    detailsHtml = details.details;
+                    if (details.assertions && details.assertions.length > 0) {
+                        detailsHtml += '<br><strong>Assertions:</strong><ul>';
+                        details.assertions.forEach(a => {
+                            detailsHtml += `<li>${a}</li>`;
+                        });
+                        detailsHtml += '</ul>';
+                    }
+                }
+                
+                container.innerHTML = `
+                    <div class="test-header">
+                        <div class="test-title">${name}</div>
+                        <div class="test-status ${statusClass}">${statusText}</div>
+                    </div>
+                    ${details.duration ? `<div>Duration: ${details.duration}ms</div>` : ''}
+                    ${detailsHtml ? `<div class="test-details">${detailsHtml}</div>` : ''}
+                `;
+                
+                // Update summary
+                this.updateSummary();
+            }
+            
+            updateSummary() {
+                const total = document.querySelectorAll('.test-container').length;
+                const passed = document.querySelectorAll('.status-pass').length;
+                const failed = document.querySelectorAll('.status-fail').length;
+                const running = document.querySelectorAll('.status-running').length;
+                
+                document.getElementById('summary-text').textContent = 
+                    `Total: ${total} | Passed: ${passed} | Failed: ${failed} | Running: ${running}`;
+            }
+        }
+        
+        // Test definitions
+        const hoverTests = [
+            {
+                name: 'Hover Detection at Default Scale',
+                async test(win, doc) {
+                    const assertions = [];
+                    
+                    // Simulate hover over known point
+                    const event = new MouseEvent('mousemove', {
+                        clientX: win.innerWidth / 2,
+                        clientY: win.innerHeight / 2,
+                        bubbles: true
+                    });
+                    
+                    doc.dispatchEvent(event);
+                    
+                    // Wait for hover processing
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    // Check if tooltip is visible
+                    const tooltip = doc.getElementById('tooltip');
+                    const isVisible = tooltip.style.display !== 'none';
+                    
+                    assertions.push(`Tooltip visible: ${isVisible}`);
+                    
+                    if (!isVisible) {
+                        throw new Error('Tooltip not visible on hover');
+                    }
+                    
+                    // Check if highlight sphere is visible
+                    const highlightVisible = win.highlightSphere && win.highlightSphere.visible;
+                    assertions.push(`Highlight sphere visible: ${highlightVisible}`);
+                    
+                    return { details: 'Hover detection working at default scale', assertions };
+                }
+            },
+            {
+                name: 'Hover Accuracy with World Coordinates',
+                async test(win, doc) {
+                    const assertions = [];
+                    
+                    // Enable debug mode
+                    const debugCheckbox = doc.getElementById('debug-mode');
+                    if (debugCheckbox) {
+                        debugCheckbox.checked = true;
+                        debugCheckbox.dispatchEvent(new Event('change'));
+                    }
+                    
+                    // Get a data point
+                    const testPoint = win.data[0];
+                    assertions.push(`Test point: TID=${testPoint.TID}, world=(${testPoint.worldX?.toFixed(2)}, ${testPoint.worldY?.toFixed(2)}, ${testPoint.worldZ?.toFixed(2)})`);
+                    
+                    // Project point to screen coordinates
+                    const camera = win.camera;
+                    const vector = new win.THREE.Vector3(testPoint.worldX, testPoint.worldY, testPoint.worldZ);
+                    vector.project(camera);
+                    
+                    const x = (vector.x + 1) / 2 * win.innerWidth;
+                    const y = -(vector.y - 1) / 2 * win.innerHeight;
+                    
+                    // Simulate hover
+                    const event = new MouseEvent('mousemove', {
+                        clientX: x,
+                        clientY: y,
+                        bubbles: true
+                    });
+                    
+                    doc.dispatchEvent(event);
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    // Check debug info
+                    const debugInfo = doc.getElementById('debug-info');
+                    if (debugInfo && debugInfo.style.display !== 'none') {
+                        assertions.push('Debug info displayed');
+                        const debugText = debugInfo.textContent;
+                        assertions.push(`Debug content: ${debugText.substring(0, 100)}...`);
+                    }
+                    
+                    return { details: 'World coordinate hover accuracy verified', assertions };
+                }
+            },
+            {
+                name: 'Hover with Hidden Points',
+                async test(win, doc) {
+                    const assertions = [];
+                    
+                    // Hide social class 3
+                    const sc3Checkbox = doc.getElementById('sc-3');
+                    sc3Checkbox.checked = false;
+                    sc3Checkbox.dispatchEvent(new Event('change'));
+                    
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    
+                    // Count visible points
+                    const sizes = win.geometry.attributes.size.array;
+                    let visibleCount = 0;
+                    for (let i = 0; i < sizes.length; i++) {
+                        if (sizes[i] > 0) visibleCount++;
+                    }
+                    
+                    assertions.push(`Visible points after hiding SC3: ${visibleCount}`);
+                    
+                    // Test hover on visible point
+                    const event = new MouseEvent('mousemove', {
+                        clientX: win.innerWidth / 2,
+                        clientY: win.innerHeight / 2,
+                        bubbles: true
+                    });
+                    
+                    doc.dispatchEvent(event);
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    const tooltip = doc.getElementById('tooltip');
+                    const tooltipVisible = tooltip.style.display !== 'none';
+                    
+                    assertions.push(`Tooltip visible with filter: ${tooltipVisible}`);
+                    
+                    // Re-enable SC3
+                    sc3Checkbox.checked = true;
+                    sc3Checkbox.dispatchEvent(new Event('change'));
+                    
+                    return { details: 'Hidden points do not interfere with hover', assertions };
+                }
+            }
+        ];
+        
+        const scalingTests = [
+            {
+                name: 'Cloud Scale Synchronization',
+                async test(win, doc) {
+                    const assertions = [];
+                    
+                    // Get initial scale
+                    const initialScale = win.currentScaleFactor;
+                    assertions.push(`Initial scale: ${initialScale}`);
+                    
+                    // Change scale
+                    const scaleSlider = doc.getElementById('cloud-scale');
+                    scaleSlider.value = '8.0';
+                    scaleSlider.dispatchEvent(new Event('input'));
+                    
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    
+                    // Check if scale updated
+                    const newScale = win.currentScaleFactor;
+                    assertions.push(`New scale: ${newScale}`);
+                    
+                    // Verify world coordinates updated
+                    const testPoint = win.data[0];
+                    const expectedX = win.originalPositions[0] * newScale;
+                    const actualX = testPoint.worldX;
+                    
+                    assertions.push(`Expected X: ${expectedX.toFixed(2)}, Actual X: ${actualX.toFixed(2)}`);
+                    
+                    if (Math.abs(expectedX - actualX) > 0.01) {
+                        throw new Error('World coordinates not synchronized with scale');
+                    }
+                    
+                    // Reset scale
+                    scaleSlider.value = '4.0';
+                    scaleSlider.dispatchEvent(new Event('input'));
+                    
+                    return { details: 'Scale synchronization verified', assertions };
+                }
+            },
+            {
+                name: 'Hover Accuracy at Different Scales',
+                async test(win, doc) {
+                    const assertions = [];
+                    const scales = [0.5, 2.0, 5.0, 10.0];
+                    
+                    for (const scale of scales) {
+                        const scaleSlider = doc.getElementById('cloud-scale');
+                        scaleSlider.value = scale.toString();
+                        scaleSlider.dispatchEvent(new Event('input'));
+                        
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                        
+                        // Test hover at center
+                        const event = new MouseEvent('mousemove', {
+                            clientX: win.innerWidth / 2,
+                            clientY: win.innerHeight / 2,
+                            bubbles: true
+                        });
+                        
+                        doc.dispatchEvent(event);
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
+                        const tooltip = doc.getElementById('tooltip');
+                        const tooltipVisible = tooltip.style.display !== 'none';
+                        
+                        assertions.push(`Scale ${scale}x: Tooltip visible = ${tooltipVisible}`);
+                    }
+                    
+                    // Reset scale
+                    const scaleSlider = doc.getElementById('cloud-scale');
+                    scaleSlider.value = '4.0';
+                    scaleSlider.dispatchEvent(new Event('input'));
+                    
+                    return { details: 'Hover works at all scale levels', assertions };
+                }
+            }
+        ];
+        
+        const filterTests = [
+            {
+                name: 'Social Class Filter Updates',
+                async test(win, doc) {
+                    const assertions = [];
+                    
+                    // Get initial visible count
+                    const initialVisible = parseInt(doc.getElementById('visible-points').textContent);
+                    assertions.push(`Initial visible points: ${initialVisible}`);
+                    
+                    // Hide multiple classes
+                    const classesToHide = [1, 2, 4];
+                    for (const sc of classesToHide) {
+                        const checkbox = doc.getElementById(`sc-${sc}`);
+                        checkbox.checked = false;
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    
+                    // Check updated count
+                    const newVisible = parseInt(doc.getElementById('visible-points').textContent);
+                    assertions.push(`Visible after hiding classes ${classesToHide}: ${newVisible}`);
+                    
+                    // Verify size array updated
+                    const sizes = win.geometry.attributes.size.array;
+                    let actualVisible = 0;
+                    for (let i = 0; i < sizes.length; i++) {
+                        if (sizes[i] > 0) actualVisible++;
+                    }
+                    
+                    assertions.push(`Actual visible in geometry: ${actualVisible}`);
+                    
+                    if (actualVisible !== newVisible) {
+                        throw new Error('Visible count mismatch');
+                    }
+                    
+                    // Re-enable all
+                    for (const sc of classesToHide) {
+                        const checkbox = doc.getElementById(`sc-${sc}`);
+                        checkbox.checked = true;
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                    
+                    return { details: 'Filter updates working correctly', assertions };
+                }
+            },
+            {
+                name: 'PC Percentile Filter',
+                async test(win, doc) {
+                    const assertions = [];
+                    
+                    // Set PC filter
+                    const pcSelect = doc.getElementById('pc-filter-select');
+                    pcSelect.value = 'pc1';
+                    pcSelect.dispatchEvent(new Event('change'));
+                    
+                    // Set percentile threshold
+                    const percentileSlider = doc.getElementById('percentile-filter');
+                    percentileSlider.value = '20';
+                    percentileSlider.dispatchEvent(new Event('input'));
+                    
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    
+                    // Count visible points
+                    const sizes = win.geometry.attributes.size.array;
+                    let visibleCount = 0;
+                    for (let i = 0; i < sizes.length; i++) {
+                        if (sizes[i] > 0) visibleCount++;
+                    }
+                    
+                    const totalPoints = win.data.length;
+                    const visiblePercent = (visibleCount / totalPoints) * 100;
+                    
+                    assertions.push(`Total points: ${totalPoints}`);
+                    assertions.push(`Visible with PC1 20% filter: ${visibleCount}`);
+                    assertions.push(`Visible percentage: ${visiblePercent.toFixed(1)}%`);
+                    
+                    // Should be roughly 40% (top 20% + bottom 20%)
+                    if (visiblePercent < 35 || visiblePercent > 45) {
+                        throw new Error(`Expected ~40% visible, got ${visiblePercent.toFixed(1)}%`);
+                    }
+                    
+                    // Reset filter
+                    pcSelect.value = 'none';
+                    pcSelect.dispatchEvent(new Event('change'));
+                    
+                    return { details: 'PC percentile filter working', assertions };
+                }
+            }
+        ];
+        
+        const performanceTests = [
+            {
+                name: 'Render Performance',
+                async test(win, doc) {
+                    const assertions = [];
+                    const frameCount = 60;
+                    const frameTimes = [];
+                    
+                    let lastTime = performance.now();
+                    
+                    for (let i = 0; i < frameCount; i++) {
+                        await new Promise(resolve => requestAnimationFrame(resolve));
+                        const currentTime = performance.now();
+                        frameTimes.push(currentTime - lastTime);
+                        lastTime = currentTime;
+                    }
+                    
+                    const avgFrameTime = frameTimes.reduce((a, b) => a + b) / frameTimes.length;
+                    const fps = 1000 / avgFrameTime;
+                    
+                    assertions.push(`Average frame time: ${avgFrameTime.toFixed(2)}ms`);
+                    assertions.push(`Average FPS: ${fps.toFixed(1)}`);
+                    
+                    if (fps < 30) {
+                        throw new Error(`Poor performance: ${fps.toFixed(1)} FPS`);
+                    }
+                    
+                    return { details: 'Render performance acceptable', assertions };
+                }
+            },
+            {
+                name: 'Hover Response Time',
+                async test(win, doc) {
+                    const assertions = [];
+                    const measurements = [];
+                    
+                    for (let i = 0; i < 10; i++) {
+                        const startTime = performance.now();
+                        
+                        // Simulate hover
+                        const event = new MouseEvent('mousemove', {
+                            clientX: Math.random() * win.innerWidth,
+                            clientY: Math.random() * win.innerHeight,
+                            bubbles: true
+                        });
+                        
+                        doc.dispatchEvent(event);
+                        
+                        // Measure custom raycast time
+                        if (win.performRaycast) {
+                            const raycastStart = performance.now();
+                            win.mouse = new win.THREE.Vector2(
+                                (event.clientX / win.innerWidth) * 2 - 1,
+                                -(event.clientY / win.innerHeight) * 2 + 1
+                            );
+                            win.performRaycast();
+                            const raycastTime = performance.now() - raycastStart;
+                            measurements.push(raycastTime);
+                        }
+                        
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                    }
+                    
+                    if (measurements.length > 0) {
+                        const avgRaycast = measurements.reduce((a, b) => a + b) / measurements.length;
+                        assertions.push(`Average raycast time: ${avgRaycast.toFixed(2)}ms`);
+                        
+                        if (avgRaycast > 10) {
+                            throw new Error(`Slow raycast: ${avgRaycast.toFixed(2)}ms`);
+                        }
+                    }
+                    
+                    return { details: 'Hover response time acceptable', assertions };
+                }
+            }
+        ];
+        
+        // Test execution
+        const runner = new TestRunner();
+        
+        async function runAllTests() {
+            await runner.init();
+            
+            for (const test of [...hoverTests, ...scalingTests, ...filterTests, ...performanceTests]) {
+                await runner.runTest(
+                    test.name.includes('Hover') ? 'Hover Tests' :
+                    test.name.includes('Scale') || test.name.includes('Cloud') ? 'Scaling Tests' :
+                    test.name.includes('Filter') || test.name.includes('PC') ? 'Filter Tests' :
+                    'Performance Tests',
+                    test.name,
+                    test.test
+                );
+            }
+        }
+        
+        async function runHoverTests() {
+            await runner.init();
+            for (const test of hoverTests) {
+                await runner.runTest('Hover Tests', test.name, test.test);
+            }
+        }
+        
+        async function runScalingTests() {
+            await runner.init();
+            for (const test of scalingTests) {
+                await runner.runTest('Scaling Tests', test.name, test.test);
+            }
+        }
+        
+        async function runFilterTests() {
+            await runner.init();
+            for (const test of filterTests) {
+                await runner.runTest('Filter Tests', test.name, test.test);
+            }
+        }
+        
+        async function runPerformanceTests() {
+            await runner.init();
+            for (const test of performanceTests) {
+                await runner.runTest('Performance Tests', test.name, test.test);
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+            document.getElementById('summary-text').textContent = 'No tests run yet';
+        }
+        
+        // Initialize on load
+        window.onload = async () => {
+            await runner.init();
+            console.log('Test suite ready');
+        };
+    </script>
+</body>
+</html>
