@@ -462,6 +462,7 @@ html_content = """<!DOCTYPE html>
             border: 1px solid rgba(255,255,255,0.2);
             max-width: 400px;
             z-index: 100;
+            cursor: move;
         }
         #controls {
             position: absolute;
@@ -500,7 +501,7 @@ html_content = """<!DOCTYPE html>
             display: none;
             border: 2px solid rgba(255,255,255,0.2);
             transition: all 0.3s;
-            z-index: 50;
+            z-index: 1000;
             resize: vertical;
             min-height: 80px;
             max-height: 80vh;
@@ -549,6 +550,26 @@ html_content = """<!DOCTYPE html>
         .minimize-btn:hover {
             color: #fff;
             background: rgba(255,255,255,0.2);
+        }
+        .layer-btn {
+            position: absolute;
+            top: 10px;
+            right: 40px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #999;
+            padding: 2px 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            transition: all 0.2s;
+            font-family: monospace;
+        }
+        .layer-btn:hover {
+            color: #fff;
+            background: rgba(255,255,255,0.2);
+        }
+        .layer-btn.on-top {
+            color: #4CAF50;
         }
         #essay-header {
             font-weight: bold;
@@ -629,7 +650,7 @@ html_content = """<!DOCTYPE html>
             border: 2px solid rgba(255,255,255,0.3);
             display: none;
             max-width: 400px;
-            z-index: 200;
+            z-index: 1000;
         }
         #pc-global-info h4 {
             margin: 0 0 10px 0;
@@ -685,7 +706,7 @@ html_content = """<!DOCTYPE html>
             border-radius: 5px;
             border: 2px solid rgba(255,255,255,0.3);
             display: none;
-            z-index: 100;
+            z-index: 1000;
             max-width: 550px;
         }
         #dml-table h4 {
@@ -981,6 +1002,7 @@ html_content = """<!DOCTYPE html>
     
     <div id="essay-display">
         <div class="resize-handle"></div>
+        <span class="layer-btn on-top" onclick="toggleLayer()" title="Toggle layer order">↕</span>
         <span class="minimize-btn" onclick="toggleMinimize()">–</span>
         <div id="essay-header">
             <strong>Essay ID:</strong> <span id="essay-id"></span> | 
@@ -1907,6 +1929,63 @@ html_content = """<!DOCTYPE html>
                 document.querySelector('.minimize-btn').textContent = '+';
             }
         };
+        
+        // Layer toggle functionality
+        let essayOnTop = true;
+        window.toggleLayer = function() {
+            const essayDisplay = document.getElementById('essay-display');
+            const dmlTable = document.getElementById('dml-table');
+            const pcInfo = document.getElementById('pc-global-info');
+            const layerBtn = document.querySelector('.layer-btn');
+            
+            if (essayOnTop) {
+                essayDisplay.style.zIndex = '50';
+                if (dmlTable) dmlTable.style.zIndex = '50';
+                if (pcInfo) pcInfo.style.zIndex = '50';
+                layerBtn.classList.remove('on-top');
+                layerBtn.title = 'Bring to front';
+            } else {
+                essayDisplay.style.zIndex = '1000';
+                if (dmlTable) dmlTable.style.zIndex = '1000';
+                if (pcInfo) pcInfo.style.zIndex = '1000';
+                layerBtn.classList.add('on-top');
+                layerBtn.title = 'Send to back';
+            }
+            essayOnTop = !essayOnTop;
+        };
+        
+        // Click to bring panel to front
+        function bringToFront(element) {
+            const panels = ['info', 'controls', 'gallery-controls', 'essay-display', 'dml-table', 'pc-global-info'];
+            let maxZ = 100;
+            
+            // Find current max z-index
+            panels.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el !== element) {
+                    const z = parseInt(window.getComputedStyle(el).zIndex) || 0;
+                    maxZ = Math.max(maxZ, z);
+                }
+            });
+            
+            // Set clicked element to front
+            element.style.zIndex = maxZ + 1;
+        }
+        
+        // Add click handlers to bring panels to front
+        ['info', 'controls', 'gallery-controls', 'essay-display', 'dml-table', 'pc-global-info'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('mousedown', function(e) {
+                    // Don't bring to front if clicking on interactive elements
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || 
+                        e.target.tagName === 'SELECT' || e.target.classList.contains('resize-handle')) {
+                        return;
+                    }
+                    bringToFront(this);
+                });
+            }
+        });
         
         // Draggable resize functionality
         let isResizing = false;
