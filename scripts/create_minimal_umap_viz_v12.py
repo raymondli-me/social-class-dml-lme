@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 """
-Minimal UMAP visualization v17 - Real-time threshold updates
-- Based on v16 with all functionality preserved
-- Removed 'Apply Thresholds' button - updates are real-time
-- Added preset buttons: Median (P50), Quartiles (P25/P75), Extremes (P10/P90)
-- All slider/input changes immediately update the visualization
-- Maintains all v16 features (resize, minimize, font control, etc.)
+Minimal UMAP visualization v12 - with cross-fitted DML results
 """
 
 import numpy as np
@@ -23,7 +18,7 @@ DATA_DIR = BASE_DIR / 'data'
 OUTPUT_DIR = BASE_DIR / 'nvembed_dml_pc_analysis'
 CHECKPOINT_DIR = BASE_DIR / 'nvembed_checkpoints'
 
-print("=== Creating Minimal UMAP Visualization v17 ===")
+print("=== Creating Minimal UMAP Visualization v12 ===")
 
 # Load essays and social class
 print("Loading data...")
@@ -160,27 +155,6 @@ def compute_simple_dml(X, Y_treatment, Y_outcome):
     
     return theta, se, ci, pval
 
-# Function to compute naive theta (no controls)
-def compute_naive_theta(Y_treatment, Y_outcome):
-    """Compute naive OLS coefficient (no controls)"""
-    from scipy import stats
-    import statsmodels.api as sm
-    
-    # Add constant to treatment
-    X = sm.add_constant(Y_treatment)
-    
-    # Simple OLS
-    model = sm.OLS(Y_outcome, X).fit()
-    
-    theta = model.params.iloc[1] if hasattr(model.params, 'iloc') else model.params[1]
-    se = model.bse.iloc[1] if hasattr(model.bse, 'iloc') else model.bse[1]
-    ci_df = model.conf_int()
-    ci = (ci_df.iloc[1, 0], ci_df.iloc[1, 1]) if hasattr(ci_df, 'iloc') else (ci_df[1][0], ci_df[1][1])
-    pval = model.pvalues.iloc[1] if hasattr(model.pvalues, 'iloc') else model.pvalues[1]
-    r2 = model.rsquared
-    
-    return theta, se, ci, pval, r2
-
 # Load actual cross-fitted metrics
 print("Loading cross-fitted metrics...")
 try:
@@ -191,10 +165,6 @@ try:
     print("Computing non-cross-fitted DML estimates...")
     theta_200, se_200, ci_200, pval_200 = compute_simple_dml(X_pca, Y_sc, Y_ai)
     theta_top5, se_top5, ci_top5, pval_top5 = compute_simple_dml(X_top5, Y_sc, Y_ai)
-    
-    # Compute naive theta
-    print("Computing naive theta (no text controls)...")
-    theta_naive, se_naive, ci_naive, pval_naive, r2_naive = compute_naive_theta(Y_sc, Y_ai)
     
     # Extract the metrics we need
     dml_results_computed = {
@@ -217,25 +187,8 @@ try:
         'theta_top5_cf': cf_metrics['sc_to_ai_top5']['theta_cf'],
         'se_top5_cf': cf_metrics['sc_to_ai_top5']['se_cf'],
         'ci_top5_cf': cf_metrics['sc_to_ai_top5']['ci_cf'],
-        'pval_top5_cf': cf_metrics['sc_to_ai_top5']['pval_cf'],
-        # Naive theta
-        'theta_naive': theta_naive,
-        'se_naive': se_naive,
-        'ci_naive': ci_naive,
-        'pval_naive': pval_naive,
-        'r2_naive': r2_naive
+        'pval_top5_cf': cf_metrics['sc_to_ai_top5']['pval_cf']
     }
-    
-    # Calculate percentage reductions
-    reduction_200 = (1 - theta_200 / theta_naive) * 100 if theta_naive != 0 else 0
-    reduction_200_cf = (1 - cf_metrics['sc_to_ai_200']['theta_cf'] / theta_naive) * 100 if theta_naive != 0 else 0
-    reduction_top5 = (1 - theta_top5 / theta_naive) * 100 if theta_naive != 0 else 0
-    reduction_top5_cf = (1 - cf_metrics['sc_to_ai_top5']['theta_cf'] / theta_naive) * 100 if theta_naive != 0 else 0
-    
-    dml_results_computed['reduction_200'] = reduction_200
-    dml_results_computed['reduction_200_cf'] = reduction_200_cf
-    dml_results_computed['reduction_top5'] = reduction_top5
-    dml_results_computed['reduction_top5_cf'] = reduction_top5_cf
     
     # Also update R² values with actual cross-fitted values
     r2_ai_200_cf = cf_metrics['sc_to_ai_200']['r2_cf']
@@ -248,9 +201,6 @@ except FileNotFoundError:
     # Compute non-cross-fitted DML
     theta_200, se_200, ci_200, pval_200 = compute_simple_dml(X_pca, Y_sc, Y_ai)
     theta_top5, se_top5, ci_top5, pval_top5 = compute_simple_dml(X_top5, Y_sc, Y_ai)
-    
-    # Compute naive theta
-    theta_naive, se_naive, ci_naive, pval_naive, r2_naive = compute_naive_theta(Y_sc, Y_ai)
     
     # Fallback cross-fitted values (from your output)
     dml_results_computed = {
@@ -269,26 +219,8 @@ except FileNotFoundError:
         'theta_top5_cf': 0.106,
         'se_top5_cf': 0.014,
         'ci_top5_cf': (0.079, 0.133),
-        'pval_top5_cf': 0.001,
-        # Naive estimate
-        'theta_naive': theta_naive,
-        'se_naive': se_naive,
-        'ci_naive': ci_naive,
-        'pval_naive': pval_naive,
-        'r2_naive': r2_naive
+        'pval_top5_cf': 0.001
     }
-    
-    # Calculate percentage reductions
-    reduction_200 = (1 - theta_200 / theta_naive) * 100 if theta_naive != 0 else 0
-    reduction_200_cf = (1 - 0.054 / theta_naive) * 100 if theta_naive != 0 else 0
-    reduction_top5 = (1 - theta_top5 / theta_naive) * 100 if theta_naive != 0 else 0
-    reduction_top5_cf = (1 - 0.106 / theta_naive) * 100 if theta_naive != 0 else 0
-    
-    dml_results_computed['reduction_200'] = reduction_200
-    dml_results_computed['reduction_200_cf'] = reduction_200_cf
-    dml_results_computed['reduction_top5'] = reduction_top5
-    dml_results_computed['reduction_top5_cf'] = reduction_top5_cf
-    
     r2_ai_200_cf = 0.505
     r2_sc_200_cf = -0.023
     r2_ai_top5_cf = 0.423
@@ -297,14 +229,14 @@ except FileNotFoundError:
 # Train logistic regression models for probability predictions
 print("Training probability models...")
 # For high/low AI rating - will use user-defined thresholds
-ai_high_threshold = ai_percentiles[90]
-ai_low_threshold = ai_percentiles[10]
+ai_high_threshold = ai_percentiles[75]
+ai_low_threshold = ai_percentiles[25]
 y_ai_high = (essays_df['ai_rating'] > ai_high_threshold).astype(int)
 y_ai_low = (essays_df['ai_rating'] < ai_low_threshold).astype(int)
 
 # For high/low social class
-sc_high_threshold = 5
-sc_low_threshold = 1
+sc_high_threshold = 4
+sc_low_threshold = 2
 y_sc_high = (essays_df['sc11'] >= sc_high_threshold).astype(int)
 y_sc_low = (essays_df['sc11'] <= sc_low_threshold).astype(int)
 
@@ -320,58 +252,25 @@ for name, y in [('ai_high', y_ai_high), ('ai_low', y_ai_low),
     models[name] = model
     print(f"  {name} model trained, accuracy: {model.score(X_scaled, y):.3f}")
 
-# Calculate global PC effects for top/bottom 10%
+# Calculate global PC effects with default thresholds
 print("Calculating global PC effects...")
 pc_global_effects = {}
-
-# Define top/bottom 10% thresholds for AI and SC
-ai_top10 = np.percentile(Y_ai, 90)
-ai_bottom10 = np.percentile(Y_ai, 10)
-sc_top10 = 5  # Top social class
-sc_bottom10 = 1  # Bottom social class
-
-# Create binary labels for top/bottom 10%
-y_ai_top10 = (Y_ai >= ai_top10).astype(int)
-y_ai_bottom10 = (Y_ai <= ai_bottom10).astype(int)
-y_sc_top10 = (Y_sc >= sc_top10).astype(int)
-y_sc_bottom10 = (Y_sc <= sc_bottom10).astype(int)
-
-# Train models for top/bottom 10%
-models_10pct = {}
-for name, y in [('ai_top10', y_ai_top10), ('ai_bottom10', y_ai_bottom10),
-                ('sc_top10', y_sc_top10), ('sc_bottom10', y_sc_bottom10)]:
-    model = LogisticRegression(max_iter=1000, random_state=42)
-    model.fit(X_scaled, y)
-    models_10pct[name] = model
-
 for pc_idx in range(200):
-    # Create test data: top 10% vs bottom 10% of PC values
+    # Create test data: high vs low PC values (default: 90th vs 10th percentile)
     test_data = np.zeros((2, 200))
-    test_data[0, pc_idx] = np.percentile(X_pca[:, pc_idx], 90)  # Top 10%
-    test_data[1, pc_idx] = np.percentile(X_pca[:, pc_idx], 10)  # Bottom 10%
+    test_data[0, pc_idx] = np.percentile(X_pca[:, pc_idx], 90)
+    test_data[1, pc_idx] = np.percentile(X_pca[:, pc_idx], 10)
     
     # Standardize
     test_scaled = scaler.transform(test_data)
     
     # Get probabilities
     probs = {}
-    for outcome in ['ai', 'sc']:
-        # Probability of being in top 10% of outcome
-        prob_top_if_high = models_10pct[f'{outcome}_top10'].predict_proba(test_scaled[0:1])[0, 1]
-        prob_top_if_low = models_10pct[f'{outcome}_top10'].predict_proba(test_scaled[1:2])[0, 1]
-        
-        # Probability of being in bottom 10% of outcome
-        prob_bottom_if_high = models_10pct[f'{outcome}_bottom10'].predict_proba(test_scaled[0:1])[0, 1]
-        prob_bottom_if_low = models_10pct[f'{outcome}_bottom10'].predict_proba(test_scaled[1:2])[0, 1]
-        
-        probs[f'{outcome}_top10_if_high'] = prob_top_if_high
-        probs[f'{outcome}_top10_if_low'] = prob_top_if_low
-        probs[f'{outcome}_bottom10_if_high'] = prob_bottom_if_high
-        probs[f'{outcome}_bottom10_if_low'] = prob_bottom_if_low
-        
-        # Calculate differences
-        probs[f'{outcome}_top10_diff'] = prob_top_if_high - prob_top_if_low
-        probs[f'{outcome}_bottom10_diff'] = prob_bottom_if_high - prob_bottom_if_low
+    for name, model in models.items():
+        prob_high = model.predict_proba(test_scaled[0:1])[0, 1]
+        prob_low = model.predict_proba(test_scaled[1:2])[0, 1]
+        probs[f'{name}_if_high'] = prob_high
+        probs[f'{name}_if_low'] = prob_low
     
     pc_global_effects[pc_idx] = probs
 
@@ -379,13 +278,13 @@ for pc_idx in range(200):
 viz_data = []
 for i in range(len(essays_df)):
     if not pd.isna(essays_df.iloc[i]['sc11']) and not pd.isna(essays_df.iloc[i]['ai_rating']):
-        # Get top 5 contributing PCs from all 200
+        # Get top 10 contributing PCs from all 200
         total_contributions = np.abs(contributions_ai_200[i]) + np.abs(contributions_sc_200[i])
-        top_5_indices = np.argsort(total_contributions)[-5:][::-1]
+        top_10_indices = np.argsort(total_contributions)[-10:][::-1]
         
         # Create PC info for this essay
         pc_info = []
-        for pc_idx in top_5_indices:
+        for pc_idx in top_10_indices:
             pc_info.append({
                 'pc': f'PC{pc_idx}',
                 'percentile': float(pc_percentiles[i, pc_idx]),
@@ -405,9 +304,7 @@ for i in range(len(essays_df)):
             'sc11': int(essays_df.iloc[i]['sc11']),
             'ai_rating': float(essays_df.iloc[i]['ai_rating']),
             'pc_info': pc_info,
-            'all_pc_values': X_pca[i].tolist(),
-            'all_pc_contributions_ai': contributions_ai_200[i].tolist(),
-            'all_pc_contributions_sc': contributions_sc_200[i].tolist()
+            'all_pc_values': X_pca[i].tolist()
         })
 
 print(f"Prepared {len(viz_data)} points")
@@ -462,7 +359,6 @@ html_content = """<!DOCTYPE html>
             border: 1px solid rgba(255,255,255,0.2);
             max-width: 400px;
             z-index: 100;
-            cursor: move;
         }
         #controls {
             position: absolute;
@@ -477,150 +373,57 @@ html_content = """<!DOCTYPE html>
         }
         #gallery-controls {
             position: absolute;
-            top: 10px;
-            right: 480px;
+            top: 400px;
+            right: 10px;
             background: rgba(0,0,0,0.8);
             padding: 15px;
             border-radius: 5px;
             font-size: 13px;
             border: 1px solid rgba(255,255,255,0.2);
             z-index: 100;
-            max-width: 200px;
         }
         #essay-display {
             position: absolute;
             bottom: 10px;
             left: 10px;
             right: 10px;
-            height: 30vh;
-            background: rgba(0,0,0,0.25);
+            max-height: 35vh;
+            background: rgba(0,0,0,0.9);
             padding: 15px;
             border-radius: 5px;
-            font-size: 12px;
+            font-size: 13px;
             overflow-y: auto;
             display: none;
             border: 2px solid rgba(255,255,255,0.2);
             transition: all 0.3s;
-            z-index: 1000;
-            resize: vertical;
-            min-height: 80px;
-            max-height: 80vh;
-        }
-        #essay-display.minimized {
-            height: 40px !important;
-            overflow: hidden;
-            padding: 8px 15px;
-        }
-        #essay-display.minimized #essay-text,
-        #essay-display.minimized #pc-analysis {
-            display: none;
-        }
-        #essay-display.minimized #essay-header {
-            margin-bottom: 0;
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-        #essay-display.minimized .header-pcs {
-            display: none;
-        }
-        .resize-handle {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 5px;
-            cursor: ns-resize;
-            background: transparent;
-        }
-        .resize-handle:hover {
-            background: rgba(255,255,255,0.2);
-        }
-        .minimize-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            cursor: pointer;
-            font-size: 16px;
-            color: #999;
-            padding: 0 5px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 3px;
-            transition: all 0.2s;
-        }
-        .minimize-btn:hover {
-            color: #fff;
-            background: rgba(255,255,255,0.2);
-        }
-        .layer-btn {
-            position: absolute;
-            top: 10px;
-            right: 40px;
-            cursor: pointer;
-            font-size: 14px;
-            color: #999;
-            padding: 2px 6px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 3px;
-            transition: all 0.2s;
-            font-family: monospace;
-        }
-        .layer-btn:hover {
-            color: #fff;
-            background: rgba(255,255,255,0.2);
-        }
-        .layer-btn.on-top {
-            color: #4CAF50;
+            z-index: 50;
         }
         #essay-header {
             font-weight: bold;
-            margin-bottom: 5px;
-            padding-bottom: 5px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
             border-bottom: 1px solid rgba(255,255,255,0.2);
-            font-size: 12px;
-        }
-        .header-main {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 3px;
-        }
-        .header-pcs {
-            display: flex;
-            gap: 10px;
-            font-size: 11px;
-            color: #ccc;
-            flex-wrap: wrap;
-        }
-        .pc-inline {
-            background: rgba(255,255,255,0.1);
-            padding: 2px 6px;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        .pc-inline:hover {
-            background: rgba(255,255,255,0.2);
         }
         #essay-text {
-            line-height: 1.4;
+            line-height: 1.6;
             white-space: pre-wrap;
-            color: white;
-            margin-bottom: 8px;
-            font-size: 24px;
-            overflow-y: auto;
+            color: #ddd;
+            margin-bottom: 15px;
         }
         #pc-analysis {
-            padding: 10px 0;
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 3px;
             margin-top: 10px;
-            display: none;
         }
         .pc-item {
-            padding: 6px;
+            margin: 8px 0;
+            padding: 8px;
             background: rgba(255,255,255,0.05);
             border-radius: 3px;
             cursor: pointer;
             transition: all 0.2s;
             border: 1px solid transparent;
-            font-size: 11px;
         }
         .pc-item:hover {
             background: rgba(255,255,255,0.1);
@@ -629,19 +432,22 @@ html_content = """<!DOCTYPE html>
         .pc-name {
             font-weight: bold;
             color: #4CAF50;
-            font-size: 12px;
         }
         .pc-percentile {
-            color: white;
+            color: #2196F3;
         }
-        .pc-values {
-            font-size: 10px;
-            color: white;
-            margin-top: 2px;
+        .pc-contribution {
+            font-size: 11px;
+            color: #888;
+        }
+        .pc-variance {
+            font-size: 11px;
+            color: #999;
+            margin-top: 3px;
         }
         #pc-global-info {
             position: absolute;
-            top: 10px;
+            top: 60px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0,0,0,0.95);
@@ -649,8 +455,8 @@ html_content = """<!DOCTYPE html>
             border-radius: 5px;
             border: 2px solid rgba(255,255,255,0.3);
             display: none;
-            max-width: 400px;
-            z-index: 1000;
+            max-width: 600px;
+            z-index: 200;
         }
         #pc-global-info h4 {
             margin: 0 0 10px 0;
@@ -681,13 +487,9 @@ html_content = """<!DOCTYPE html>
         }
         .prob-high {
             color: #4CAF50;
-            font-weight: bold;
-        }
-        .prob-med {
-            color: #FFC107;
         }
         .prob-low {
-            color: #999;
+            color: #f44336;
         }
         .threshold-info {
             font-size: 11px;
@@ -706,7 +508,7 @@ html_content = """<!DOCTYPE html>
             border-radius: 5px;
             border: 2px solid rgba(255,255,255,0.3);
             display: none;
-            z-index: 1000;
+            z-index: 100;
             max-width: 550px;
         }
         #dml-table h4 {
@@ -845,6 +647,12 @@ html_content = """<!DOCTYPE html>
             background: #000;
             color: white;
         }
+        .pc-threshold-controls {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
@@ -854,50 +662,47 @@ html_content = """<!DOCTYPE html>
         <h3>UMAP Visualization</h3>
         <div>Total Essays: """ + str(len(viz_data)) + """</div>
         
-        <div class="control-group">
-            <label>AI Rating Thresholds:</label>
-            <div>
-                Low: &lt; <input type="number" id="ai-low-val" class="threshold-input" value=\"""" + f"{ai_percentiles[10]:.1f}" + """\" min="1" max="10" step="0.1" onchange="updateFromValues('ai'); updateCategories()">
-                <span style="color: #888;">(P<span id="ai-low-pct-display">10</span>)</span>
-                <br>
-                High: &gt; <input type="number" id="ai-high-val" class="threshold-input" value=\"""" + f"{ai_percentiles[90]:.1f}" + """\" min="1" max="10" step="0.1" onchange="updateFromValues('ai'); updateCategories()">
-                <span style="color: #888;">(P<span id="ai-high-pct-display">90</span>)</span>
+        <div class="tab-buttons">
+            <button class="tab-button active" onclick="switchTab('values')">By Values</button>
+            <button class="tab-button" onclick="switchTab('percentiles')">By Percentiles</button>
+        </div>
+        
+        <div id="values-panel" class="threshold-panel active">
+            <div class="control-group">
+                <label>AI Rating Thresholds:</label>
+                <div>
+                    Low: &lt; <input type="number" id="ai-low-val" class="threshold-input" value=\"""" + f"{ai_percentiles[25]:.1f}" + """\" min="1" max="10" step="0.1">
+                    High: &gt; <input type="number" id="ai-high-val" class="threshold-input" value=\"""" + f"{ai_percentiles[75]:.1f}" + """\" min="1" max="10" step="0.1">
+                </div>
             </div>
-            <div style="margin-top: 5px;">
-                Low: P<input type="number" id="ai-low-pct-input" min="0" max="50" value="10" step="1" style="width: 40px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 2px 4px;" onchange="updatePercentileFromInput('ai', 'low'); updateCategories()">
-                <input type="range" id="ai-low-pct" min="0" max="50" value="10" step="1" style="width: 60px;" oninput="updateFromPercentiles('ai'); updateCategories()">
-                <br>
-                High: P<input type="number" id="ai-high-pct-input" min="50" max="100" value="90" step="1" style="width: 40px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 2px 4px;" onchange="updatePercentileFromInput('ai', 'high'); updateCategories()">
-                <input type="range" id="ai-high-pct" min="50" max="100" value="90" step="1" style="width: 60px;" oninput="updateFromPercentiles('ai'); updateCategories()">
+            
+            <div class="control-group">
+                <label>Social Class Thresholds:</label>
+                <div>
+                    Low: ≤ <input type="number" id="sc-low-val" class="threshold-input" value="2" min="1" max="5" step="1">
+                    High: ≥ <input type="number" id="sc-high-val" class="threshold-input" value="4" min="1" max="5" step="1">
+                </div>
             </div>
         </div>
         
-        <div class="control-group">
-            <label>Social Class Thresholds:</label>
-            <div>
-                Low: ≤ <input type="number" id="sc-low-val" class="threshold-input" value="1" min="1" max="5" step="1" onchange="updateFromValues('sc'); updateCategories()">
-                <span style="color: #888;">(P<span id="sc-low-pct-display">10</span>)</span>
-                <br>
-                High: ≥ <input type="number" id="sc-high-val" class="threshold-input" value="5" min="1" max="5" step="1" onchange="updateFromValues('sc'); updateCategories()">
-                <span style="color: #888;">(P<span id="sc-high-pct-display">90</span>)</span>
+        <div id="percentiles-panel" class="threshold-panel">
+            <div class="control-group">
+                <label>AI Rating Percentiles:</label>
+                <div>
+                    Low: P<input type="number" id="ai-low-pct" class="threshold-input" value="25" min="0" max="100" step="5">
+                    High: P<input type="number" id="ai-high-pct" class="threshold-input" value="75" min="0" max="100" step="5">
+                </div>
             </div>
-            <div style="margin-top: 5px;">
-                Low: P<input type="number" id="sc-low-pct-input" min="0" max="50" value="10" step="1" style="width: 40px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 2px 4px;" onchange="updatePercentileFromInput('sc', 'low'); updateCategories()">
-                <input type="range" id="sc-low-pct" min="0" max="50" value="10" step="1" style="width: 60px;" oninput="updateFromPercentiles('sc'); updateCategories()">
-                <br>
-                High: P<input type="number" id="sc-high-pct-input" min="50" max="100" value="90" step="1" style="width: 40px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 2px 4px;" onchange="updatePercentileFromInput('sc', 'high'); updateCategories()">
-                <input type="range" id="sc-high-pct" min="50" max="100" value="90" step="1" style="width: 60px;" oninput="updateFromPercentiles('sc'); updateCategories()">
+            
+            <div class="control-group">
+                <label>Social Class is categorical (1-5)</label>
+                <div style="color: #888; font-size: 12px;">
+                    Using same thresholds as values tab
+                </div>
             </div>
         </div>
         
-        <div style="margin-top: 10px;">
-            <label>Presets:</label>
-            <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px;">
-                <button onclick="applyPreset('extremes')" style="padding: 5px 10px;">Extremes (P10/P90)</button>
-                <button onclick="applyPreset('quartiles')" style="padding: 5px 10px;">Quartiles (P25/P75)</button>
-                <button onclick="applyPreset('median')" style="padding: 5px 10px;">Median (P50)</button>
-            </div>
-        </div>
+        <button onclick="updateCategories()">Apply Thresholds</button>
         
         <div style="margin-top: 15px;">
             <div class="legend-item">
@@ -941,18 +746,8 @@ html_content = """<!DOCTYPE html>
         </div>
         <div class="control-group">
             <label>Essay BG Opacity:</label>
-            <input type="range" id="essay-opacity" min="0.1" max="1" step="0.05" value="0.25" style="width: 100px;">
-            <span id="essay-opacity-val">0.25</span>
-        </div>
-        <div class="control-group">
-            <label>Essay Font Size:</label>
-            <input type="range" id="essay-font-size" min="6" max="72" step="2" value="24" style="width: 100px;">
-            <span id="font-size-val">24</span>px
-        </div>
-        <div class="control-group">
-            <label>Essay Height:</label>
-            <input type="range" id="essay-height" min="5" max="90" step="5" value="30" style="width: 100px;">
-            <span id="essay-height-val">30</span>%
+            <input type="range" id="essay-opacity" min="0.5" max="1" step="0.05" value="0.9" style="width: 100px;">
+            <span id="essay-opacity-val">0.9</span>
         </div>
         <div class="control-group">
             <label>Transition Speed:</label>
@@ -1001,9 +796,6 @@ html_content = """<!DOCTYPE html>
     </div>
     
     <div id="essay-display">
-        <div class="resize-handle"></div>
-        <span class="layer-btn on-top" onclick="toggleLayer()" title="Toggle layer order">↕</span>
-        <span class="minimize-btn" onclick="toggleMinimize()">–</span>
         <div id="essay-header">
             <strong>Essay ID:</strong> <span id="essay-id"></span> | 
             <strong>SC:</strong> <span id="essay-sc"></span> | 
@@ -1011,7 +803,7 @@ html_content = """<!DOCTYPE html>
         </div>
         <div id="essay-text"></div>
         <div id="pc-analysis">
-            <h4 style="margin: 0 0 10px 0; display: none;">Principal Components</h4>
+            <h4 style="margin: 0 0 10px 0;">Top 10 Contributing Principal Components (from all 200)</h4>
             <div id="pc-list"></div>
         </div>
     </div>
@@ -1020,10 +812,18 @@ html_content = """<!DOCTYPE html>
         <span class="close-btn" onclick="closePCInfo()">×</span>
         <h4 id="pc-title"></h4>
         <div id="pc-content"></div>
+        <div class="pc-threshold-controls">
+            <label>PC Percentile Thresholds:</label>
+            <div>
+                High PC: Top <input type="number" id="pc-high-pct" class="threshold-input" value="10" min="1" max="50" step="1">%
+                Low PC: Bottom <input type="number" id="pc-low-pct" class="threshold-input" value="10" min="1" max="50" step="1">%
+            </div>
+            <button onclick="updatePCAnalysis()">Update Analysis</button>
+        </div>
     </div>
     
     <div id="dml-table">
-        <span class="close-btn" onclick="document.getElementById('dml-table').style.display='none'; document.getElementById('toggle-dml').checked=false;">×</span>
+        <span class="close-btn" onclick="toggleDMLTable()">×</span>
         <h4>Double Machine Learning Results</h4>
         <table class="dml-stats">
             <tr>
@@ -1032,30 +832,7 @@ html_content = """<!DOCTYPE html>
                 <td style="text-align: center; font-weight: bold; color: #888;">Cross-Fitted (5-fold)</td>
             </tr>
             <tr>
-                <td colspan="3" style="padding-top: 10px; font-weight: bold; color: #4CAF50;">Naive Model (No Text Controls)</td>
-            </tr>
-            <tr>
-                <td>θ (SC→AI):</td>
-                <td colspan="2" style="text-align: center;">""" + f"{dml_results_computed['theta_naive']:.3f}" + """</td>
-            </tr>
-            <tr>
-                <td>Standard Error:</td>
-                <td colspan="2" style="text-align: center;">""" + f"{dml_results_computed['se_naive']:.3f}" + """</td>
-            </tr>
-            <tr>
-                <td>95% CI:</td>
-                <td colspan="2" style="text-align: center;">""" + f"({dml_results_computed['ci_naive'][0]:.3f}, {dml_results_computed['ci_naive'][1]:.3f})" + """</td>
-            </tr>
-            <tr>
-                <td>p-value:</td>
-                <td colspan="2" style="text-align: center;">""" + f"{dml_results_computed['pval_naive']:.4f}" + """</td>
-            </tr>
-            <tr>
-                <td>R² (variance explained):</td>
-                <td colspan="2" style="text-align: center;">""" + f"{dml_results_computed['r2_naive']:.3f}" + """</td>
-            </tr>
-            <tr>
-                <td colspan="3" style="padding-top: 15px; font-weight: bold; color: #4CAF50;">All 200 PCs Model</td>
+                <td colspan="3" style="padding-top: 10px; font-weight: bold; color: #4CAF50;">All 200 PCs Model</td>
             </tr>
             <tr>
                 <td>DML θ (SC→AI):</td>
@@ -1076,11 +853,6 @@ html_content = """<!DOCTYPE html>
                 <td>p-value:</td>
                 <td>""" + f"{dml_results_computed['pval_200']:.4f}" + """</td>
                 <td>""" + f"{dml_results_computed['pval_200_cf']:.4f}" + """</td>
-            </tr>
-            <tr>
-                <td style="color: #ff9800;">Effect Reduction vs Naive:</td>
-                <td style="color: #ff9800;">""" + f"{dml_results_computed['reduction_200']:.1f}%" + """</td>
-                <td style="color: #ff9800;">""" + f"{dml_results_computed['reduction_200_cf']:.1f}%" + """</td>
             </tr>
             <tr>
                 <td>AI R² (200 PCs):</td>
@@ -1116,11 +888,6 @@ html_content = """<!DOCTYPE html>
                 <td>""" + f"{dml_results_computed['pval_top5_cf']:.4f}" + """</td>
             </tr>
             <tr>
-                <td style="color: #ff9800;">Effect Reduction vs Naive:</td>
-                <td style="color: #ff9800;">""" + f"{dml_results_computed['reduction_top5']:.1f}%" + """</td>
-                <td style="color: #ff9800;">""" + f"{dml_results_computed['reduction_top5_cf']:.1f}%" + """</td>
-            </tr>
-            <tr>
                 <td>AI R² (Top 5):</td>
                 <td>""" + f"{r2_ai_top5:.3f}" + """</td>
                 <td>""" + f"{r2_ai_top5_cf:.3f}" + """</td>
@@ -1143,30 +910,22 @@ html_content = """<!DOCTYPE html>
         };
         const aiPercentiles = """ + json.dumps(ai_percentiles) + """;
         const pcGlobalEffects = """ + json.dumps(pc_global_effects) + """;
-        const pcVarianceExplained = """ + json.dumps(variance_explained.tolist()) + """;
         
         // Store user thresholds
         let userThresholds = {
-            ai_low: """ + str(ai_percentiles[10]) + """,
-            ai_high: """ + str(ai_percentiles[90]) + """,
-            sc_low: 1,
-            sc_high: 5,
+            ai_low: """ + str(ai_percentiles[25]) + """,
+            ai_high: """ + str(ai_percentiles[75]) + """,
+            sc_low: 2,
+            sc_high: 4,
             pc_high_pct: 10,
             pc_low_pct: 10
         };
         
-        // Calculate rating percentile functions
+        // Calculate AI rating percentile function
         const aiRatings = data.map(d => d.ai_rating).sort((a, b) => a - b);
-        const scRatings = data.map(d => d.sc11).sort((a, b) => a - b);
-        
         function getAIPercentile(percentile) {
             const index = Math.floor((percentile / 100) * (aiRatings.length - 1));
             return aiRatings[index];
-        }
-        
-        function getSCPercentile(percentile) {
-            const index = Math.floor((percentile / 100) * (scRatings.length - 1));
-            return scRatings[index];
         }
         
         // Scene setup
@@ -1336,209 +1095,98 @@ html_content = """<!DOCTYPE html>
         }
         
         // Show global PC info
-        window.showPCGlobalInfo = function(pcIndex) {
+        function showPCGlobalInfo() {
+            const pcIndex = document.getElementById('pc-select').value;
             const infoDiv = document.getElementById('pc-global-info');
             
-            if (pcIndex === undefined || pcIndex === null) {
-                const selectValue = document.getElementById('pc-select').value;
-                if (!selectValue) {
-                    infoDiv.style.display = 'none';
-                    currentPCIndex = null;
-                    return;
-                }
-                pcIndex = parseInt(selectValue);
+            if (!pcIndex) {
+                infoDiv.style.display = 'none';
+                currentPCIndex = null;
+                return;
             }
             
             currentPCIndex = parseInt(pcIndex);
-            document.getElementById('pc-select').value = pcIndex;
             updatePCAnalysis();
             infoDiv.style.display = 'block';
-        }
-        
-        window.navigatePC = function(direction) {
-            if (currentPCIndex === null) return;
-            
-            let newIndex = currentPCIndex + direction;
-            // Wrap around at boundaries
-            if (newIndex < 0) newIndex = 199;
-            if (newIndex > 199) newIndex = 0;
-            
-            currentPCIndex = newIndex;
-            document.getElementById('pc-select').value = newIndex;
-            updatePCAnalysis();
         }
         
         function updatePCAnalysis() {
             if (currentPCIndex === null) return;
             
             const effects = pcGlobalEffects[currentPCIndex];
+            const pcHighPct = parseInt(document.getElementById('pc-high-pct').value);
+            const pcLowPct = parseInt(document.getElementById('pc-low-pct').value);
             
-            // Update title with navigation
-            document.getElementById('pc-title').innerHTML = `
-                <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
-                    <button onclick="navigatePC(-1)" style="padding: 2px 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; cursor: pointer; border-radius: 3px; font-size: 16px;">
-                        ◀
-                    </button>
-                    <span style="font-size: 18px; font-weight: bold;">PC${currentPCIndex} Detailed Statistics</span>
-                    <button onclick="navigatePC(1)" style="padding: 2px 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; cursor: pointer; border-radius: 3px; font-size: 16px;">
-                        ▶
-                    </button>
-                </div>
-            `;
-            
-            // Calculate statistics for this PC
-            const contributions_ai = data.map(d => d.all_pc_contributions_ai[currentPCIndex]);
-            const contributions_sc = data.map(d => d.all_pc_contributions_sc[currentPCIndex]);
-            
-            // Calculate rankings for each essay based on absolute SHAP values
-            const rankings_ai = [];
-            const rankings_sc = [];
-            
-            data.forEach((d, i) => {
-                // Get all absolute contributions for this essay
-                const abs_contribs_ai = d.all_pc_contributions_ai.map(Math.abs);
-                const abs_contribs_sc = d.all_pc_contributions_sc.map(Math.abs);
-                
-                // Sort indices by contribution magnitude
-                const sorted_ai = abs_contribs_ai.map((val, idx) => ({val, idx}))
-                    .sort((a, b) => b.val - a.val);
-                const sorted_sc = abs_contribs_sc.map((val, idx) => ({val, idx}))
-                    .sort((a, b) => b.val - a.val);
-                
-                // Find rank of current PC (1-based)
-                const rank_ai = sorted_ai.findIndex(item => item.idx === currentPCIndex) + 1;
-                const rank_sc = sorted_sc.findIndex(item => item.idx === currentPCIndex) + 1;
-                
-                rankings_ai.push(rank_ai);
-                rankings_sc.push(rank_sc);
-            });
-            
-            // Calculate statistics
-            const avg_rank_ai = rankings_ai.reduce((a, b) => a + b, 0) / rankings_ai.length;
-            const median_rank_ai = rankings_ai.sort((a, b) => a - b)[Math.floor(rankings_ai.length / 2)];
-            const avg_rank_sc = rankings_sc.reduce((a, b) => a + b, 0) / rankings_sc.length;
-            const median_rank_sc = rankings_sc.sort((a, b) => a - b)[Math.floor(rankings_sc.length / 2)];
-            
-            // Calculate range and std dev for SHAP values
-            const min_shap_ai = Math.min(...contributions_ai);
-            const max_shap_ai = Math.max(...contributions_ai);
-            const range_shap_ai = max_shap_ai - min_shap_ai;
-            const avg_shap_ai = contributions_ai.reduce((a, b) => a + b, 0) / contributions_ai.length;
-            const std_shap_ai = Math.sqrt(contributions_ai.reduce((sum, val) => sum + Math.pow(val - avg_shap_ai, 2), 0) / contributions_ai.length);
-            
-            const min_shap_sc = Math.min(...contributions_sc);
-            const max_shap_sc = Math.max(...contributions_sc);
-            const range_shap_sc = max_shap_sc - min_shap_sc;
-            const avg_shap_sc = contributions_sc.reduce((a, b) => a + b, 0) / contributions_sc.length;
-            const std_shap_sc = Math.sqrt(contributions_sc.reduce((sum, val) => sum + Math.pow(val - avg_shap_sc, 2), 0) / contributions_sc.length);
-            
-            // Calculate correlations between PC values and outcomes
-            const pc_values = data.map(d => d.all_pc_values[currentPCIndex]);
-            const ai_ratings = data.map(d => d.ai_rating);
-            const sc_values = data.map(d => d.sc11);
-            
-            // Pearson correlation function
-            function pearsonCorrelation(x, y) {
-                const n = x.length;
-                const sumX = x.reduce((a, b) => a + b, 0);
-                const sumY = y.reduce((a, b) => a + b, 0);
-                const sumXY = x.map((xi, i) => xi * y[i]).reduce((a, b) => a + b, 0);
-                const sumX2 = x.map(xi => xi * xi).reduce((a, b) => a + b, 0);
-                const sumY2 = y.map(yi => yi * yi).reduce((a, b) => a + b, 0);
-                
-                const numerator = n * sumXY - sumX * sumY;
-                const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
-                
-                return denominator === 0 ? 0 : numerator / denominator;
-            }
-            
-            const corr_pc_ai = pearsonCorrelation(pc_values, ai_ratings);
-            const corr_pc_sc = pearsonCorrelation(pc_values, sc_values);
-            
-            const variance_pct = pcVarianceExplained[currentPCIndex] * 100;
-            
-            const formatDiff = (diff) => {
-                const sign = diff > 0 ? '+' : '';
-                const cls = Math.abs(diff) > 0.2 ? 'prob-high' : (Math.abs(diff) > 0.1 ? 'prob-med' : 'prob-low');
-                return `<span class="${cls}">${sign}${(diff * 100).toFixed(1)}%</span>`;
-            };
+            document.getElementById('pc-title').textContent = `PC${currentPCIndex} Global Effects`;
             
             const content = `
-                <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 5px;">
-                    <h5 style="color: #2196F3; margin: 0 0 10px 0;">Importance Rankings (out of 200 PCs)</h5>
-                    <table style="width: 100%; font-size: 12px;">
-                        <tr><td style="width: 50%;"><strong>AI Rating Model:</strong></td><td style="width: 50%;"><strong>Social Class Model:</strong></td></tr>
-                        <tr><td>Average Rank: ${avg_rank_ai.toFixed(1)}</td><td>Average Rank: ${avg_rank_sc.toFixed(1)}</td></tr>
-                        <tr><td>Median Rank: ${median_rank_ai}</td><td>Median Rank: ${median_rank_sc}</td></tr>
-                    </table>
+                <div class="threshold-info">
+                    <strong>Current thresholds:</strong><br>
+                    AI Rating: Low &lt; ${userThresholds.ai_low}, High &gt; ${userThresholds.ai_high}<br>
+                    Social Class: Low ≤ ${userThresholds.sc_low}, High ≥ ${userThresholds.sc_high}
                 </div>
-                
-                <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 5px;">
-                    <h5 style="color: #2196F3; margin: 0 0 10px 0;">SHAP Value Statistics</h5>
-                    <table style="width: 100%; font-size: 12px;">
-                        <tr><td style="width: 50%;"><strong>AI Rating:</strong></td><td style="width: 50%;"><strong>Social Class:</strong></td></tr>
-                        <tr><td>Range: [${min_shap_ai.toFixed(4)}, ${max_shap_ai.toFixed(4)}]</td><td>Range: [${min_shap_sc.toFixed(4)}, ${max_shap_sc.toFixed(4)}]</td></tr>
-                        <tr><td>Total Range: ${range_shap_ai.toFixed(4)}</td><td>Total Range: ${range_shap_sc.toFixed(4)}</td></tr>
-                        <tr><td>Std Dev: ${std_shap_ai.toFixed(4)}</td><td>Std Dev: ${std_shap_sc.toFixed(4)}</td></tr>
-                    </table>
-                </div>
-                
-                <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 5px;">
-                    <h5 style="color: #2196F3; margin: 0 0 10px 0;">Variance & Correlations</h5>
-                    <div style="font-size: 13px; margin-bottom: 8px;">
-                        <strong>Variance Explained:</strong> ${variance_pct.toFixed(2)}% of total embedding variance
-                    </div>
-                    <table style="width: 100%; font-size: 12px;">
-                        <tr>
-                            <td><strong>Correlation with AI Rating:</strong></td>
-                            <td style="text-align: right; color: ${Math.abs(corr_pc_ai) > 0.3 ? '#4CAF50' : Math.abs(corr_pc_ai) > 0.1 ? '#FFC107' : '#999'}">
-                                r = ${corr_pc_ai.toFixed(3)}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><strong>Correlation with Social Class:</strong></td>
-                            <td style="text-align: right; color: ${Math.abs(corr_pc_sc) > 0.3 ? '#4CAF50' : Math.abs(corr_pc_sc) > 0.1 ? '#FFC107' : '#999'}">
-                                r = ${corr_pc_sc.toFixed(3)}
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-                
-                <div style="padding: 10px; background: rgba(255,255,255,0.05); border-radius: 5px;">
-                    <h5 style="color: #2196F3; margin: 0 0 10px 0;">Top 10% vs Bottom 10% Analysis</h5>
-                    <table class="prob-table" style="width: 100%; font-size: 11px;">
-                        <tr style="font-weight: bold;">
-                            <td>Outcome</td>
-                            <td style="text-align: center;">If High PC</td>
-                            <td style="text-align: center;">If Low PC</td>
-                            <td style="text-align: center;">Difference</td>
-                        </tr>
-                        <tr>
-                            <td>High AI Rating</td>
-                            <td style="text-align: center;">${(effects.ai_top10_if_high * 100).toFixed(1)}%</td>
-                            <td style="text-align: center;">${(effects.ai_top10_if_low * 100).toFixed(1)}%</td>
-                            <td style="text-align: center;">${formatDiff(effects.ai_top10_diff)}</td>
-                        </tr>
-                        <tr>
-                            <td>Low AI Rating</td>
-                            <td style="text-align: center;">${(effects.ai_bottom10_if_high * 100).toFixed(1)}%</td>
-                            <td style="text-align: center;">${(effects.ai_bottom10_if_low * 100).toFixed(1)}%</td>
-                            <td style="text-align: center;">${formatDiff(effects.ai_bottom10_diff)}</td>
-                        </tr>
-                        <tr style="border-top: 1px solid #333;">
-                            <td>High Social Class</td>
-                            <td style="text-align: center;">${(effects.sc_top10_if_high * 100).toFixed(1)}%</td>
-                            <td style="text-align: center;">${(effects.sc_top10_if_low * 100).toFixed(1)}%</td>
-                            <td style="text-align: center;">${formatDiff(effects.sc_top10_diff)}</td>
-                        </tr>
-                        <tr>
-                            <td>Low Social Class</td>
-                            <td style="text-align: center;">${(effects.sc_bottom10_if_high * 100).toFixed(1)}%</td>
-                            <td style="text-align: center;">${(effects.sc_bottom10_if_low * 100).toFixed(1)}%</td>
-                            <td style="text-align: center;">${formatDiff(effects.sc_bottom10_diff)}</td>
-                        </tr>
-                    </table>
-                </div>
+                <table class="prob-table">
+                    <tr>
+                        <td>If HIGH in PC${currentPCIndex} (top ${pcHighPct}%):</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td style="padding-left: 20px;">→ High AI Rating</td>
+                        <td class="${effects.ai_high_if_high > 0.5 ? 'prob-high' : 'prob-low'}">
+                            ${(effects.ai_high_if_high * 100).toFixed(1)}%
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding-left: 20px;">→ Low AI Rating</td>
+                        <td class="${effects.ai_low_if_high > 0.5 ? 'prob-high' : 'prob-low'}">
+                            ${(effects.ai_low_if_high * 100).toFixed(1)}%
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding-left: 20px;">→ High Social Class</td>
+                        <td class="${effects.sc_high_if_high > 0.5 ? 'prob-high' : 'prob-low'}">
+                            ${(effects.sc_high_if_high * 100).toFixed(1)}%
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding-left: 20px;">→ Low Social Class</td>
+                        <td class="${effects.sc_low_if_high > 0.5 ? 'prob-high' : 'prob-low'}">
+                            ${(effects.sc_low_if_high * 100).toFixed(1)}%
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>&nbsp;</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>If LOW in PC${currentPCIndex} (bottom ${pcLowPct}%):</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td style="padding-left: 20px;">→ High AI Rating</td>
+                        <td class="${effects.ai_high_if_low > 0.5 ? 'prob-high' : 'prob-low'}">
+                            ${(effects.ai_high_if_low * 100).toFixed(1)}%
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding-left: 20px;">→ Low AI Rating</td>
+                        <td class="${effects.ai_low_if_low > 0.5 ? 'prob-high' : 'prob-low'}">
+                            ${(effects.ai_low_if_low * 100).toFixed(1)}%
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding-left: 20px;">→ High Social Class</td>
+                        <td class="${effects.sc_high_if_low > 0.5 ? 'prob-high' : 'prob-low'}">
+                            ${(effects.sc_high_if_low * 100).toFixed(1)}%
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding-left: 20px;">→ Low Social Class</td>
+                        <td class="${effects.sc_low_if_low > 0.5 ? 'prob-high' : 'prob-low'}">
+                            ${(effects.sc_low_if_low * 100).toFixed(1)}%
+                        </td>
+                    </tr>
+                </table>
             `;
             
             document.getElementById('pc-content').innerHTML = content;
@@ -1564,14 +1212,21 @@ html_content = """<!DOCTYPE html>
             d.pc_info.forEach((pc, idx) => {
                 const pcDiv = document.createElement('div');
                 pcDiv.className = 'pc-item';
-                pcDiv.onclick = () => showPCGlobalInfo(parseInt(pc.pc.substring(2)));
                 
                 pcDiv.innerHTML = `
-                    <div class="pc-name">${pc.pc}</div>
-                    <div class="pc-percentile">${pc.percentile.toFixed(1)}%ile</div>
-                    <div class="pc-values">
-                        AI: ${pc.contribution_ai > 0 ? '+' : ''}${pc.contribution_ai.toFixed(2)}<br>
-                        SC: ${pc.contribution_sc > 0 ? '+' : ''}${pc.contribution_sc.toFixed(2)}
+                    <div>
+                        <span class="pc-name">${pc.pc}</span>
+                        <span class="pc-percentile">(${pc.percentile.toFixed(1)}th percentile)</span>
+                        <span style="float: right; color: #666; font-size: 11px;">
+                            ${pc.variance_total.toFixed(2)}% total var
+                        </span>
+                    </div>
+                    <div class="pc-contribution">
+                        AI contribution: ${pc.contribution_ai > 0 ? '+' : ''}${pc.contribution_ai.toFixed(3)} | 
+                        SC contribution: ${pc.contribution_sc > 0 ? '+' : ''}${pc.contribution_sc.toFixed(3)}
+                    </div>
+                    <div class="pc-variance">
+                        Variance explained: AI ${pc.variance_ai.toFixed(3)}% | SC ${pc.variance_sc.toFixed(3)}%
                     </div>
                 `;
                 
@@ -1579,138 +1234,33 @@ html_content = """<!DOCTYPE html>
             });
         }
         
-        // Update functions for synchronized controls
-        window.updateFromValues = function(type) {
-            if (type === 'ai') {
-                const lowVal = parseFloat(document.getElementById('ai-low-val').value);
-                const highVal = parseFloat(document.getElementById('ai-high-val').value);
-                
-                // Find closest percentiles
-                let lowPct = 0;
-                for (let i = 0; i < aiRatings.length; i++) {
-                    if (aiRatings[i] >= lowVal) {
-                        lowPct = (i / aiRatings.length) * 100;
-                        break;
-                    }
-                }
-                
-                let highPct = 100;
-                for (let i = aiRatings.length - 1; i >= 0; i--) {
-                    if (aiRatings[i] <= highVal) {
-                        highPct = ((i + 1) / aiRatings.length) * 100;
-                        break;
-                    }
-                }
-                
-                document.getElementById('ai-low-pct').value = Math.round(lowPct);
-                document.getElementById('ai-high-pct').value = Math.round(highPct);
-                document.getElementById('ai-low-pct-display').textContent = Math.round(lowPct);
-                document.getElementById('ai-high-pct-display').textContent = Math.round(highPct);
-            } else {
-                const lowVal = parseInt(document.getElementById('sc-low-val').value);
-                const highVal = parseInt(document.getElementById('sc-high-val').value);
-                
-                // Find closest percentiles
-                let lowPct = 0;
-                for (let i = 0; i < scRatings.length; i++) {
-                    if (scRatings[i] > lowVal) {
-                        lowPct = (i / scRatings.length) * 100;
-                        break;
-                    }
-                }
-                
-                let highPct = 100;
-                for (let i = scRatings.length - 1; i >= 0; i--) {
-                    if (scRatings[i] < highVal) {
-                        highPct = ((i + 1) / scRatings.length) * 100;
-                        break;
-                    }
-                }
-                
-                document.getElementById('sc-low-pct').value = Math.round(lowPct);
-                document.getElementById('sc-high-pct').value = Math.round(highPct);
-                document.getElementById('sc-low-pct-display').textContent = Math.round(lowPct);
-                document.getElementById('sc-high-pct-display').textContent = Math.round(highPct);
-            }
-        };
-        
-        window.updateFromPercentiles = function(type) {
-            if (type === 'ai') {
-                const lowPct = parseInt(document.getElementById('ai-low-pct').value);
-                const highPct = parseInt(document.getElementById('ai-high-pct').value);
-                
-                document.getElementById('ai-low-val').value = getAIPercentile(lowPct).toFixed(1);
-                document.getElementById('ai-high-val').value = getAIPercentile(highPct).toFixed(1);
-                document.getElementById('ai-low-pct-display').textContent = lowPct;
-                document.getElementById('ai-high-pct-display').textContent = highPct;
-                document.getElementById('ai-low-pct-input').value = lowPct;
-                document.getElementById('ai-high-pct-input').value = highPct;
-            } else {
-                const lowPct = parseInt(document.getElementById('sc-low-pct').value);
-                const highPct = parseInt(document.getElementById('sc-high-pct').value);
-                
-                document.getElementById('sc-low-val').value = Math.round(getSCPercentile(lowPct));
-                document.getElementById('sc-high-val').value = Math.round(getSCPercentile(highPct));
-                document.getElementById('sc-low-pct-display').textContent = lowPct;
-                document.getElementById('sc-high-pct-display').textContent = highPct;
-                document.getElementById('sc-low-pct-input').value = lowPct;
-                document.getElementById('sc-high-pct-input').value = highPct;
-            }
-        };
-        
-        window.updatePercentileFromInput = function(type, level) {
-            if (type === 'ai') {
-                const pct = parseInt(document.getElementById(`ai-${level}-pct-input`).value);
-                document.getElementById(`ai-${level}-pct`).value = pct;
-                updateFromPercentiles('ai');
-            } else {
-                const pct = parseInt(document.getElementById(`sc-${level}-pct-input`).value);
-                document.getElementById(`sc-${level}-pct`).value = pct;
-                updateFromPercentiles('sc');
-            }
-        };
-        
-        window.applyPreset = function(preset) {
-            let lowPct, highPct;
+        // Tab switching
+        let currentTab = 'values';
+        window.switchTab = function(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.threshold-panel').forEach(panel => panel.classList.remove('active'));
             
-            switch(preset) {
-                case 'median':
-                    lowPct = 50;
-                    highPct = 50;
-                    break;
-                case 'quartiles':
-                    lowPct = 25;
-                    highPct = 75;
-                    break;
-                case 'extremes':
-                    lowPct = 10;
-                    highPct = 90;
-                    break;
-            }
-            
-            // Update AI percentiles
-            document.getElementById('ai-low-pct').value = lowPct;
-            document.getElementById('ai-high-pct').value = highPct;
-            document.getElementById('ai-low-pct-input').value = lowPct;
-            document.getElementById('ai-high-pct-input').value = highPct;
-            updateFromPercentiles('ai');
-            
-            // Update SC percentiles
-            document.getElementById('sc-low-pct').value = lowPct;
-            document.getElementById('sc-high-pct').value = highPct;
-            document.getElementById('sc-low-pct-input').value = lowPct;
-            document.getElementById('sc-high-pct-input').value = highPct;
-            updateFromPercentiles('sc');
-            
-            // Update categories immediately
-            updateCategories();
+            document.querySelector(`.tab-button:nth-child(${tab === 'values' ? 1 : 2})`).classList.add('active');
+            document.getElementById(`${tab}-panel`).classList.add('active');
         };
         
         function updateCategories() {
-            const aiLow = parseFloat(document.getElementById('ai-low-val').value);
-            const aiHigh = parseFloat(document.getElementById('ai-high-val').value);
-            const scLow = parseInt(document.getElementById('sc-low-val').value);
-            const scHigh = parseInt(document.getElementById('sc-high-val').value);
+            let aiLow, aiHigh, scLow, scHigh;
+            
+            if (currentTab === 'values') {
+                aiLow = parseFloat(document.getElementById('ai-low-val').value);
+                aiHigh = parseFloat(document.getElementById('ai-high-val').value);
+                scLow = parseInt(document.getElementById('sc-low-val').value);
+                scHigh = parseInt(document.getElementById('sc-high-val').value);
+            } else {
+                const aiLowPct = parseFloat(document.getElementById('ai-low-pct').value);
+                const aiHighPct = parseFloat(document.getElementById('ai-high-pct').value);
+                aiLow = getAIPercentile(aiLowPct);
+                aiHigh = getAIPercentile(aiHighPct);
+                scLow = parseInt(document.getElementById('sc-low-val').value);
+                scHigh = parseInt(document.getElementById('sc-high-val').value);
+            }
             
             // Update user thresholds
             userThresholds.ai_low = aiLow;
@@ -1881,36 +1431,13 @@ html_content = """<!DOCTYPE html>
             
             animateToPosition(cameraPos, targetPosition);
             
-            // Get current font sizes
-            const fontSize = parseInt(document.getElementById('essay-font-size').value);
-            const headerFontSize = Math.round(fontSize * 1.2);
-            const pcFontSize = Math.round(fontSize * 0.7);
-            
-            // Create PC summary for header with inline styles
-            let pcSummary = '';
-            d.pc_info.forEach((pc, idx) => {
-                const aiSign = pc.contribution_ai > 0 ? '+' : '';
-                const scSign = pc.contribution_sc > 0 ? '+' : '';
-                pcSummary += `<span class="pc-inline" style="font-size: ${pcFontSize}px; color: white;" onclick="event.stopPropagation(); showPCGlobalInfo(${parseInt(pc.pc.substring(2))})">
-                    ${pc.pc}: ${pc.percentile.toFixed(0)}% | AI:${aiSign}${pc.contribution_ai.toFixed(2)} SC:${scSign}${pc.contribution_sc.toFixed(2)} | ${pc.variance_total.toFixed(1)}%var
-                </span>`;
-            });
-            
-            document.getElementById('essay-header').innerHTML = `
-                <div class="header-main">
-                    <div>
-                        <strong>Essay ID:</strong> ${d.essay_id} | 
-                        <strong>SC:</strong> ${d.sc11} | 
-                        <strong>AI:</strong> ${d.ai_rating.toFixed(2)}
-                    </div>
-                </div>
-                <div class="header-pcs" style="font-size: ${pcFontSize}px; color: white;">
-                    <strong>Top 5 PCs:</strong> ${pcSummary}
-                </div>
-            `;
-            document.getElementById('essay-header').style.fontSize = headerFontSize + 'px';
+            document.getElementById('essay-id').textContent = d.essay_id;
+            document.getElementById('essay-sc').textContent = d.sc11;
+            document.getElementById('essay-ai').textContent = d.ai_rating.toFixed(2);
             document.getElementById('essay-text').textContent = d.essay;
-            document.getElementById('essay-text').style.fontSize = fontSize + 'px';
+            
+            // Display PC analysis
+            displayPCAnalysis(d);
             
             const color = categoryColors[category];
             const bgOpacity = parseFloat(document.getElementById('essay-opacity').value);
@@ -1921,109 +1448,9 @@ html_content = """<!DOCTYPE html>
             document.getElementById('essay-display').style.display = 'block';
         }
         
-        
-        // Minimize/maximize essay display
-        window.toggleMinimize = function() {
-            const essayDisplay = document.getElementById('essay-display');
-            if (essayDisplay.classList.contains('minimized')) {
-                essayDisplay.classList.remove('minimized');
-                document.querySelector('.minimize-btn').textContent = '–';
-            } else {
-                essayDisplay.classList.add('minimized');
-                document.querySelector('.minimize-btn').textContent = '+';
-            }
-        };
-        
-        // Layer toggle functionality
-        let essayOnTop = true;
-        window.toggleLayer = function() {
-            const essayDisplay = document.getElementById('essay-display');
-            const dmlTable = document.getElementById('dml-table');
-            const pcInfo = document.getElementById('pc-global-info');
-            const layerBtn = document.querySelector('.layer-btn');
-            
-            if (essayOnTop) {
-                essayDisplay.style.zIndex = '50';
-                if (dmlTable) dmlTable.style.zIndex = '50';
-                if (pcInfo) pcInfo.style.zIndex = '50';
-                layerBtn.classList.remove('on-top');
-                layerBtn.title = 'Bring to front';
-            } else {
-                essayDisplay.style.zIndex = '1000';
-                if (dmlTable) dmlTable.style.zIndex = '1000';
-                if (pcInfo) pcInfo.style.zIndex = '1000';
-                layerBtn.classList.add('on-top');
-                layerBtn.title = 'Send to back';
-            }
-            essayOnTop = !essayOnTop;
-        };
-        
-        // Click to bring panel to front
-        function bringToFront(element) {
-            const panels = ['info', 'controls', 'gallery-controls', 'essay-display', 'dml-table', 'pc-global-info'];
-            let maxZ = 100;
-            
-            // Find current max z-index
-            panels.forEach(id => {
-                const el = document.getElementById(id);
-                if (el && el !== element) {
-                    const z = parseInt(window.getComputedStyle(el).zIndex) || 0;
-                    maxZ = Math.max(maxZ, z);
-                }
-            });
-            
-            // Set clicked element to front
-            element.style.zIndex = maxZ + 1;
-        }
-        
-        // Add click handlers to bring panels to front
-        ['info', 'controls', 'gallery-controls', 'essay-display', 'dml-table', 'pc-global-info'].forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.addEventListener('mousedown', function(e) {
-                    // Don't bring to front if clicking on interactive elements
-                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || 
-                        e.target.tagName === 'SELECT' || e.target.classList.contains('resize-handle')) {
-                        return;
-                    }
-                    bringToFront(this);
-                });
-            }
-        });
-        
-        // Draggable resize functionality
-        let isResizing = false;
-        const essayDisplay = document.getElementById('essay-display');
-        const resizeHandle = essayDisplay.querySelector('.resize-handle');
-        
-        resizeHandle.addEventListener('mousedown', (e) => {
-            isResizing = true;
-            e.preventDefault();
-        });
-        
-        document.addEventListener('mousemove', (e) => {
-            if (!isResizing) return;
-            
-            const newHeight = window.innerHeight - e.clientY - 10;
-            if (newHeight >= 80 && newHeight <= window.innerHeight * 0.8) {
-                essayDisplay.style.height = newHeight + 'px';
-            }
-        });
-        
-        document.addEventListener('mouseup', () => {
-            isResizing = false;
-        });
-        
         // Initialize
         populatePCDropdown();
         updateCategories();
-        
-        // Initialize percentile displays
-        updateFromValues('ai');
-        updateFromValues('sc');
-        
-        // Apply initial font sizes
-        applyFontSizes();
         
         // Custom cursor
         const cursorIndicator = document.getElementById('cursor-indicator');
@@ -2058,36 +1485,13 @@ html_content = """<!DOCTYPE html>
                     const d = data[hoveredIndex];
                     const category = categories[hoveredIndex];
                     
-                    // Get current font sizes
-                    const fontSize = parseInt(document.getElementById('essay-font-size').value);
-                    const headerFontSize = Math.round(fontSize * 1.2);
-                    const pcFontSize = Math.round(fontSize * 0.7);
-                    
-                    // Create PC summary for header with inline styles
-                    let pcSummary = '';
-                    d.pc_info.forEach((pc, idx) => {
-                        const aiSign = pc.contribution_ai > 0 ? '+' : '';
-                        const scSign = pc.contribution_sc > 0 ? '+' : '';
-                        pcSummary += `<span class="pc-inline" style="font-size: ${pcFontSize}px; color: white;" onclick="event.stopPropagation(); showPCGlobalInfo(${parseInt(pc.pc.substring(2))})">
-                            ${pc.pc}: ${pc.percentile.toFixed(0)}% | AI:${aiSign}${pc.contribution_ai.toFixed(2)} SC:${scSign}${pc.contribution_sc.toFixed(2)} | ${pc.variance_total.toFixed(1)}%var
-                        </span>`;
-                    });
-                    
-                    document.getElementById('essay-header').innerHTML = `
-                        <div class="header-main">
-                            <div>
-                                <strong>Essay ID:</strong> ${d.essay_id} | 
-                                <strong>SC:</strong> ${d.sc11} | 
-                                <strong>AI:</strong> ${d.ai_rating.toFixed(2)}
-                            </div>
-                        </div>
-                        <div class="header-pcs" style="font-size: ${pcFontSize}px; color: white;">
-                            <strong>Top 5 PCs:</strong> ${pcSummary}
-                        </div>
-                    `;
-                    document.getElementById('essay-header').style.fontSize = headerFontSize + 'px';
+                    document.getElementById('essay-id').textContent = d.essay_id;
+                    document.getElementById('essay-sc').textContent = d.sc11;
+                    document.getElementById('essay-ai').textContent = d.ai_rating.toFixed(2);
                     document.getElementById('essay-text').textContent = d.essay;
-                    document.getElementById('essay-text').style.fontSize = fontSize + 'px';
+                    
+                    // Display PC analysis
+                    displayPCAnalysis(d);
                     
                     const color = categoryColors[category];
                     const bgOpacity = parseFloat(document.getElementById('essay-opacity').value);
@@ -2134,68 +1538,17 @@ html_content = """<!DOCTYPE html>
             }
         });
         
-        document.getElementById('essay-font-size').addEventListener('input', (e) => {
-            const fontSize = parseInt(e.target.value);
-            document.getElementById('font-size-val').textContent = fontSize;
-            document.getElementById('essay-text').style.fontSize = fontSize + 'px';
-            document.getElementById('essay-header').style.fontSize = Math.round(fontSize * 1.2) + 'px';
-            
-            // Apply to PC analysis text as well (70% of essay font size)
-            const pcFontSize = Math.round(fontSize * 0.7);
-            document.querySelectorAll('.pc-values, .pc-percentile, .header-pcs').forEach(el => {
-                el.style.fontSize = pcFontSize + 'px';
-                el.style.color = 'white';
-            });
-            
-            // Apply to PC inline elements (also 70% of essay font size)
-            document.querySelectorAll('.pc-inline').forEach(el => {
-                el.style.fontSize = pcFontSize + 'px';
-                el.style.color = 'white';
-            });
-        });
-        
-        // Function to apply font sizes based on current essay font size
-        function applyFontSizes() {
-            const fontSize = parseInt(document.getElementById('essay-font-size').value);
-            document.getElementById('essay-text').style.fontSize = fontSize + 'px';
-            document.getElementById('essay-header').style.fontSize = Math.round(fontSize * 1.2) + 'px';
-            
-            const pcFontSize = Math.round(fontSize * 0.7);
-            document.querySelectorAll('.pc-values, .pc-percentile, .header-pcs').forEach(el => {
-                el.style.fontSize = pcFontSize + 'px';
-                el.style.color = 'white';
-            });
-            
-            document.querySelectorAll('.pc-inline').forEach(el => {
-                el.style.fontSize = pcFontSize + 'px';
-                el.style.color = 'white';
-            });
-        }
-        
-        document.getElementById('essay-height').addEventListener('input', (e) => {
-            const heightPercent = parseInt(e.target.value);
-            document.getElementById('essay-height-val').textContent = heightPercent;
-            document.getElementById('essay-display').style.height = heightPercent + 'vh';
-        });
-        
         document.getElementById('transition-speed').addEventListener('input', (e) => {
             document.getElementById('transition-val').textContent = e.target.value;
         });
         
         // Keyboard navigation
         window.addEventListener('keydown', (e) => {
-            // Gallery mode navigation
-            if (galleryMode) {
-                if (e.key === 'ArrowLeft') navigateGallery(-1);
-                else if (e.key === 'ArrowRight') navigateGallery(1);
-                else if (e.key === 'Escape') stopGallery();
-            } 
-            // PC analysis navigation when popup is open
-            else if (document.getElementById('pc-global-info').style.display === 'block' && currentPCIndex !== null) {
-                if (e.key === 'ArrowLeft') navigatePC(-1);
-                else if (e.key === 'ArrowRight') navigatePC(1);
-                else if (e.key === 'Escape') closePCInfo();
-            }
+            if (!galleryMode) return;
+            
+            if (e.key === 'ArrowLeft') navigateGallery(-1);
+            else if (e.key === 'ArrowRight') navigateGallery(1);
+            else if (e.key === 'Escape') stopGallery();
         });
         
         // Animation loop
@@ -2246,19 +1599,14 @@ html_content = """<!DOCTYPE html>
 </html>"""
 
 # Save
-output_file = OUTPUT_DIR / 'minimal_umap_viz_v17.html'
+output_file = OUTPUT_DIR / 'minimal_umap_viz_v12.html'
 with open(output_file, 'w') as f:
     f.write(html_content)
 
-print(f"\n✅ Enhanced visualization v17 with real-time threshold updates saved to: {output_file}")
-print("\nChanges in v17 (based on v16):")
-print("- Removed 'Apply Thresholds' button - dots update in real-time")
-print("- Added preset buttons: Median (P50), Quartiles (P25/P75), Extremes (P10/P90)")
-print("- All threshold changes immediately update the visualization")
-print("\nChanges in v16 (based on v14):")
-print("- Can resize essay display by dragging the top edge")
-print("- Minimize button (–/+) on essay display")  
-print("- Font size applies to all text content")
-print("- Height constraints: 80px min, 80% viewport max")
-print("- All PC, SHAP, variance text now white")
-print("- Essay background opacity default: 25%")
+print(f"\n✅ Full-featured visualization with cross-fitted DML saved to: {output_file}")
+print("\nChanges in v12:")
+print("- Added cross-fitted DML results column")
+print("- Shows both non-cross-fitted and cross-fitted (5-fold) results")
+print("- Pre-computed values to avoid timeout")
+print("- Wider DML table (550px) to accommodate both columns")
+print("- All other features from v11 maintained")

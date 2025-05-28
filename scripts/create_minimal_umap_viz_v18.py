@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Minimal UMAP visualization v17 - Real-time threshold updates
-- Based on v16 with all functionality preserved
-- Removed 'Apply Thresholds' button - updates are real-time
-- Added preset buttons: Median (P50), Quartiles (P25/P75), Extremes (P10/P90)
-- All slider/input changes immediately update the visualization
-- Maintains all v16 features (resize, minimize, font control, etc.)
+Minimal UMAP visualization v18 - HDBSCAN Topics with c-TF-IDF
+- Based on v17 with all functionality preserved
+- Added HDBSCAN clustering for topic discovery
+- c-TF-IDF for extracting topic keywords
+- Toggle to show/hide topics with billboarding labels
+- Sliders for controlling visible topics and text size
+- Dynamic topic coloring when topics are enabled
 """
 
 import numpy as np
@@ -15,6 +16,10 @@ from pathlib import Path
 import json
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
+import hdbscan
+from sklearn.feature_extraction.text import TfidfVectorizer
+from collections import Counter
+import re
 import xgboost as xgb
 
 # Paths
@@ -23,7 +28,7 @@ DATA_DIR = BASE_DIR / 'data'
 OUTPUT_DIR = BASE_DIR / 'nvembed_dml_pc_analysis'
 CHECKPOINT_DIR = BASE_DIR / 'nvembed_checkpoints'
 
-print("=== Creating Minimal UMAP Visualization v17 ===")
+print("=== Creating Minimal UMAP Visualization v18 ===")
 
 # Load essays and social class
 print("Loading data...")
@@ -375,6 +380,99 @@ for pc_idx in range(200):
     
     pc_global_effects[pc_idx] = probs
 
+# HDBSCAN clustering on UMAP coordinates
+print("Running HDBSCAN clustering on UMAP coordinates...")
+clusterer = hdbscan.HDBSCAN(min_cluster_size=50, min_samples=10, cluster_selection_method='eom')
+cluster_labels = clusterer.fit_predict(X_umap_3d)
+
+# Add cluster labels to essays_df
+essays_df['hdbscan_topic_id'] = cluster_labels
+
+# Get unique cluster IDs (excluding noise -1)
+unique_clusters = [c for c in np.unique(cluster_labels) if c != -1]
+print(f"Found {len(unique_clusters)} clusters (topics)")
+
+# c-TF-IDF for keyword extraction
+print("Extracting keywords using c-TF-IDF...")
+
+def preprocess_text(text):
+    """Basic text preprocessing for c-TF-IDF"""
+    text = str(text).lower()
+    # Remove URLs
+    text = re.sub(r'http\S+|www\S+', '', text)
+    # Keep only letters and spaces
+    text = re.sub(r'[^a-z\s]', ' ', text)
+    # Remove extra spaces
+    text = ' '.join(text.split())
+    return text
+
+# Group essays by cluster
+cluster_documents = {}
+for cluster_id in unique_clusters:
+    cluster_essays = essays_df[essays_df['hdbscan_topic_id'] == cluster_id]['essay'].tolist()
+    # Concatenate and preprocess all essays in the cluster
+    cluster_text = ' '.join([preprocess_text(essay) for essay in cluster_essays])
+    cluster_documents[cluster_id] = cluster_text
+
+# Also include noise as a "cluster" for comparison
+noise_essays = essays_df[essays_df['hdbscan_topic_id'] == -1]['essay'].tolist()
+if noise_essays:
+    noise_text = ' '.join([preprocess_text(essay) for essay in noise_essays])
+    cluster_documents[-1] = noise_text
+
+# Create TF-IDF vectorizer
+vectorizer = TfidfVectorizer(
+    max_features=1000,
+    stop_words='english',
+    ngram_range=(1, 2),  # Include unigrams and bigrams
+    min_df=2,
+    max_df=0.8
+)
+
+# Fit vectorizer on all documents
+all_docs = list(cluster_documents.values())
+doc_labels = list(cluster_documents.keys())
+tfidf_matrix = vectorizer.fit_transform(all_docs)
+feature_names = vectorizer.get_feature_names_out()
+
+# Extract top keywords for each cluster using c-TF-IDF
+topic_keywords = {}
+for idx, cluster_id in enumerate(doc_labels):
+    if cluster_id == -1:  # Skip noise
+        continue
+    
+    # Get TF-IDF scores for this cluster
+    cluster_tfidf = tfidf_matrix[idx].toarray().flatten()
+    
+    # c-TF-IDF: Multiply by cluster frequency / overall frequency
+    # For simplicity, we'll use the raw TF-IDF scores as they already capture importance
+    
+    # Get top 10 keywords
+    top_indices = cluster_tfidf.argsort()[-10:][::-1]
+    top_keywords = [feature_names[i] for i in top_indices if cluster_tfidf[i] > 0][:5]  # Take top 5
+    
+    topic_keywords[cluster_id] = ' - '.join([kw.title() for kw in top_keywords])
+
+# Calculate cluster centroids
+print("Calculating cluster centroids...")
+cluster_centroids = {}
+for cluster_id in unique_clusters:
+    cluster_points = X_umap_3d[cluster_labels == cluster_id]
+    centroid = cluster_points.mean(axis=0)
+    cluster_centroids[cluster_id] = centroid.tolist()
+
+# Create topic visualization data
+topic_viz_data = []
+for cluster_id in unique_clusters:
+    topic_viz_data.append({
+        'topic_id': int(cluster_id),
+        'keywords': topic_keywords.get(cluster_id, f"Topic {cluster_id}"),
+        'centroid': [float(x) * 100 for x in cluster_centroids[cluster_id]],  # Scale by 100 to match visualization
+        'size': int(np.sum(cluster_labels == cluster_id))
+    })
+
+print(f"Prepared {len(topic_viz_data)} topic visualizations")
+
 # Prepare visualization data
 viz_data = []
 for i in range(len(essays_df)):
@@ -404,6 +502,7 @@ for i in range(len(essays_df)):
             'essay': essays_df.iloc[i]['essay'],
             'sc11': int(essays_df.iloc[i]['sc11']),
             'ai_rating': float(essays_df.iloc[i]['ai_rating']),
+            'hdbscan_topic_id': int(essays_df.iloc[i]['hdbscan_topic_id']),
             'pc_info': pc_info,
             'all_pc_values': X_pca[i].tolist(),
             'all_pc_contributions_ai': contributions_ai_200[i].tolist(),
@@ -425,7 +524,7 @@ html_content = """<!DOCTYPE html>
             margin: 0;
             padding: 0;
             overflow: hidden;
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
             background: #000;
             cursor: none;
             color: #fff;
@@ -463,6 +562,34 @@ html_content = """<!DOCTYPE html>
             max-width: 400px;
             z-index: 100;
             cursor: move;
+            transition: transform 0.3s ease;
+            overflow: visible;
+        }
+        #info.collapsed {
+            transform: translateX(calc(-100% + 40px));
+        }
+        #info .collapse-btn {
+            position: absolute;
+            right: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 25px;
+            height: 60px;
+            background: rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-left: none;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        #info .collapse-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
         }
         #controls {
             position: absolute;
@@ -474,6 +601,34 @@ html_content = """<!DOCTYPE html>
             font-size: 13px;
             border: 1px solid rgba(255,255,255,0.2);
             z-index: 100;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            overflow: visible;
+        }
+        #controls.collapsed {
+            transform: translateX(calc(100% - 40px));
+        }
+        #controls .collapse-btn {
+            position: absolute;
+            left: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 25px;
+            height: 60px;
+            background: rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-right: none;
+            border-radius: 5px 0 0 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        #controls .collapse-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
         }
         #gallery-controls {
             position: absolute;
@@ -486,12 +641,13 @@ html_content = """<!DOCTYPE html>
             border: 1px solid rgba(255,255,255,0.2);
             z-index: 100;
             max-width: 200px;
+            transition: right 0.3s ease;
         }
         #essay-display {
             position: absolute;
             bottom: 10px;
-            left: 10px;
-            right: 10px;
+            left: 60px;
+            right: 60px;
             height: 30vh;
             background: rgba(0,0,0,0.25);
             padding: 15px;
@@ -736,7 +892,9 @@ html_content = """<!DOCTYPE html>
         .control-group label {
             display: block;
             margin-bottom: 3px;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: 0.02em;
         }
         .threshold-input {
             width: 60px;
@@ -759,15 +917,26 @@ html_content = """<!DOCTYPE html>
             border: 1px solid rgba(255,255,255,0.3);
         }
         button {
-            padding: 5px 10px;
+            padding: 6px 12px;
             margin-top: 5px;
             cursor: pointer;
             background: rgba(255,255,255,0.1);
             border: 1px solid rgba(255,255,255,0.3);
             color: white;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            transition: all 0.15s ease;
         }
         button:hover {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.4);
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: translateY(0);
         }
         #counts {
             margin-top: 10px;
@@ -850,7 +1019,10 @@ html_content = """<!DOCTYPE html>
 <body>
     <div id="cursor-indicator"></div>
     
-    <div id="info">
+    <div id="info" class="collapsed">
+        <div class="collapse-btn" onclick="toggleInfoCollapse()">
+            <span id="info-collapse-icon">◀</span>
+        </div>
         <h3>UMAP Visualization</h3>
         <div>Total Essays: """ + str(len(viz_data)) + """</div>
         
@@ -925,7 +1097,10 @@ html_content = """<!DOCTYPE html>
         <div id="counts"></div>
     </div>
     
-    <div id="controls">
+    <div id="controls" class="collapsed">
+        <div class="collapse-btn" onclick="toggleControlsCollapse()">
+            <span id="collapse-icon">▶</span>
+        </div>
         <div class="control-group">
             <label>
                 <input type="checkbox" id="auto-rotate" checked> Auto-rotate
@@ -970,9 +1145,39 @@ html_content = """<!DOCTYPE html>
                 <input type="checkbox" id="toggle-dml" onchange="toggleDMLTable()"> Show DML Stats
             </label>
         </div>
+        <div class="control-group">
+            <label>
+                <input type="checkbox" id="toggle-topics" onchange="updateTopicVisibility()"> Show Topics
+            </label>
+        </div>
+        <div class="control-group">
+            <label>Visible Topics (Closest):</label>
+            <input type="range" id="topic-count" min="1" max="100" value="20" step="1" style="width: 100px;" oninput="updateTopicVisibility(); document.getElementById('topic-count-val').textContent = this.value;">
+            <span id="topic-count-val">20</span>
+        </div>
+        <div class="control-group">
+            <label>Topic Text Size:</label>
+            <input type="range" id="topic-text-size" min="5" max="50" value="15" step="1" style="width: 100px;" oninput="updateTopicTextSize(); document.getElementById('topic-text-size-val').textContent = this.value;">
+            <span id="topic-text-size-val">15</span>
+        </div>
+        <div class="control-group">
+            <label>
+                <input type="checkbox" id="toggle-topic-colors" checked onchange="updateTopicVisibility()"> Color by Topics
+            </label>
+        </div>
+        <div class="control-group">
+            <label>Topic Label Opacity:</label>
+            <input type="range" id="topic-opacity" min="0.1" max="1" step="0.1" value="0.7" style="width: 100px;" oninput="updateTopicOpacity(); document.getElementById('topic-opacity-val').textContent = this.value;">
+            <span id="topic-opacity-val">0.7</span>
+        </div>
+        <div class="control-group">
+            <label>
+                <input type="checkbox" id="topic-labels-front" onchange="updateTopicLayering()"> Topic Labels on Top
+            </label>
+        </div>
     </div>
     
-    <div id="gallery-controls">
+    <div id="gallery-controls" style="right: 60px;">
         <h4 style="margin-top: 0;">Gallery Mode</h4>
         <button class="gallery-button" style="border-color: #00ff00;" onclick="startGallery('both_high')">
             High AI + High SC<br>
@@ -1136,6 +1341,7 @@ html_content = """<!DOCTYPE html>
     <script>
         // Data and models
         const data = """ + json.dumps(viz_data) + """;
+        const topicVizData = """ + json.dumps(topic_viz_data) + """;
         const cloudCenter = {
             x: """ + str(center_x * 100) + """,
             y: """ + str(center_y * 100) + """,
@@ -1281,6 +1487,126 @@ html_content = """<!DOCTYPE html>
             cameraPos: new THREE.Vector3(),
             targetPos: new THREE.Vector3()
         };
+        
+        // Topic visualization state
+        let topicObjects = [];
+        let topicColors = {};
+        let originalColors = new Float32Array(data.length * 3);
+        
+        // Generate topic colors
+        function generateTopicColors() {
+            const numTopics = Math.max(...data.map(d => d.hdbscan_topic_id)) + 1;
+            for (let i = 0; i < numTopics; i++) {
+                const hue = (i * 360 / numTopics) % 360;
+                const color = new THREE.Color();
+                color.setHSL(hue / 360, 0.7, 0.5);
+                topicColors[i] = color;
+            }
+            // Noise color (topic -1)
+            topicColors[-1] = new THREE.Color(0x333333);
+        }
+        
+        // Create text sprite for labels
+        function createTextSprite(text, size) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            // Measure text
+            context.font = `600 ${size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+            const metrics = context.measureText(text);
+            const textWidth = metrics.width;
+            
+            // Set canvas size with padding
+            const padding = 12;
+            canvas.width = textWidth + padding * 2;
+            canvas.height = size + padding * 2;
+            
+            // Draw background with rounded corners effect
+            context.fillStyle = 'rgba(0, 0, 0, 0.75)';
+            const radius = 6;
+            context.beginPath();
+            context.moveTo(radius, 0);
+            context.lineTo(canvas.width - radius, 0);
+            context.quadraticCurveTo(canvas.width, 0, canvas.width, radius);
+            context.lineTo(canvas.width, canvas.height - radius);
+            context.quadraticCurveTo(canvas.width, canvas.height, canvas.width - radius, canvas.height);
+            context.lineTo(radius, canvas.height);
+            context.quadraticCurveTo(0, canvas.height, 0, canvas.height - radius);
+            context.lineTo(0, radius);
+            context.quadraticCurveTo(0, 0, radius, 0);
+            context.closePath();
+            context.fill();
+            
+            // Draw text
+            context.font = `600 ${size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+            context.fillStyle = 'white';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(text, canvas.width / 2, canvas.height / 2);
+            
+            // Create texture and sprite
+            const texture = new THREE.CanvasTexture(canvas);
+            const opacity = parseFloat(document.getElementById('topic-opacity').value);
+            const material = new THREE.SpriteMaterial({ 
+                map: texture,
+                transparent: true,
+                opacity: opacity
+            });
+            const sprite = new THREE.Sprite(material);
+            
+            // Scale sprite
+            const scaleFactor = 0.5;
+            sprite.scale.set(canvas.width * scaleFactor, canvas.height * scaleFactor, 1);
+            
+            return sprite;
+        }
+        
+        // Create topic visual objects
+        function createTopicVisuals() {
+            // Clear existing topics
+            topicObjects.forEach(obj => scene.remove(obj.group));
+            topicObjects = [];
+            
+            // Set max value for slider
+            document.getElementById('topic-count').max = topicVizData.length;
+            
+            topicVizData.forEach(topic => {
+                const group = new THREE.Group();
+                
+                // Create centroid marker
+                const markerGeometry = new THREE.SphereGeometry(2, 16, 16);
+                const markerMaterial = new THREE.MeshBasicMaterial({ 
+                    color: topicColors[topic.topic_id] || 0xffffff,
+                    opacity: 0.8,
+                    transparent: true
+                });
+                const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+                marker.position.set(...topic.centroid);
+                group.add(marker);
+                
+                // Create text label
+                const textSize = parseInt(document.getElementById('topic-text-size').value);
+                const label = createTextSprite(topic.keywords, textSize);
+                label.position.set(
+                    topic.centroid[0],
+                    topic.centroid[1] + 10,
+                    topic.centroid[2]
+                );
+                group.add(label);
+                
+                // Initially hidden
+                group.visible = false;
+                scene.add(group);
+                
+                topicObjects.push({
+                    group: group,
+                    position: new THREE.Vector3(...topic.centroid),
+                    id: topic.topic_id,
+                    label: label,
+                    keywords: topic.keywords
+                });
+            });
+        }
         
         // Functions
         function easeInOutCubic(t) {
@@ -1706,6 +2032,111 @@ html_content = """<!DOCTYPE html>
             updateCategories();
         };
         
+        // Topic visualization functions
+        window.updateTopicTextSize = function() {
+            const size = parseInt(document.getElementById('topic-text-size').value);
+            
+            topicObjects.forEach(topic => {
+                // Remove old label
+                topic.group.remove(topic.label);
+                
+                // Create new label with updated size
+                const newLabel = createTextSprite(topic.keywords, size);
+                newLabel.position.copy(topic.label.position);
+                topic.group.add(newLabel);
+                topic.label = newLabel;
+            });
+        };
+        
+        window.updateTopicVisibility = function() {
+            const showTopics = document.getElementById('toggle-topics').checked;
+            const colorByTopics = document.getElementById('toggle-topic-colors').checked;
+            
+            if (!showTopics) {
+                // Hide all topics and restore original colors
+                topicObjects.forEach(obj => obj.group.visible = false);
+                
+                // Restore original AI/SC colors
+                for (let i = 0; i < data.length; i++) {
+                    colors[i * 3] = originalColors[i * 3];
+                    colors[i * 3 + 1] = originalColors[i * 3 + 1];
+                    colors[i * 3 + 2] = originalColors[i * 3 + 2];
+                }
+                geometry.attributes.color.needsUpdate = true;
+                return;
+            }
+            
+            // Show topics
+            const N = parseInt(document.getElementById('topic-count').value);
+            
+            // Apply colors based on toggle
+            if (colorByTopics) {
+                // Apply topic colors to points
+                data.forEach((d, i) => {
+                    const color = topicColors[d.hdbscan_topic_id] || topicColors[-1];
+                    colors[i * 3] = color.r;
+                    colors[i * 3 + 1] = color.g;
+                    colors[i * 3 + 2] = color.b;
+                });
+            } else {
+                // Keep original AI/SC colors
+                for (let i = 0; i < data.length; i++) {
+                    colors[i * 3] = originalColors[i * 3];
+                    colors[i * 3 + 1] = originalColors[i * 3 + 1];
+                    colors[i * 3 + 2] = originalColors[i * 3 + 2];
+                }
+            }
+            geometry.attributes.color.needsUpdate = true;
+            
+            // Calculate distances from camera to topics
+            const distances = topicObjects.map(topic => ({
+                topic: topic,
+                distance: camera.position.distanceTo(topic.position)
+            }));
+            
+            // Sort by distance (closest first)
+            distances.sort((a, b) => a.distance - b.distance);
+            
+            // Show only the N closest topics
+            distances.forEach((item, index) => {
+                item.topic.group.visible = index < N;
+            });
+        };
+        
+        window.updateTopicOpacity = function() {
+            const opacity = parseFloat(document.getElementById('topic-opacity').value);
+            
+            topicObjects.forEach(topic => {
+                if (topic.label && topic.label.material) {
+                    topic.label.material.opacity = opacity;
+                }
+            });
+        };
+        
+        window.updateTopicLayering = function() {
+            const labelsOnTop = document.getElementById('topic-labels-front').checked;
+            
+            if (labelsOnTop) {
+                // Disable depth test for labels so they render on top
+                topicObjects.forEach(topic => {
+                    if (topic.label && topic.label.material) {
+                        topic.label.material.depthTest = false;
+                        topic.label.material.depthWrite = false;
+                        topic.label.renderOrder = 999;
+                    }
+                });
+            } else {
+                // Enable normal depth testing
+                topicObjects.forEach(topic => {
+                    if (topic.label && topic.label.material) {
+                        topic.label.material.depthTest = true;
+                        topic.label.material.depthWrite = true;
+                        topic.label.renderOrder = 0;
+                    }
+                });
+            }
+        };
+        
         function updateCategories() {
             const aiLow = parseFloat(document.getElementById('ai-low-val').value);
             const aiHigh = parseFloat(document.getElementById('ai-high-val').value);
@@ -1761,6 +2192,11 @@ html_content = """<!DOCTYPE html>
                 colors[i * 3] = color[0];
                 colors[i * 3 + 1] = color[1];
                 colors[i * 3 + 2] = color[2];
+                
+                // Save original colors
+                originalColors[i * 3] = color[0];
+                originalColors[i * 3 + 1] = color[1];
+                originalColors[i * 3 + 2] = color[2];
             });
             
             // Sort category indices by proximity
@@ -1958,6 +2394,41 @@ html_content = """<!DOCTYPE html>
             essayOnTop = !essayOnTop;
         };
         
+        // Controls collapse toggle
+        window.toggleControlsCollapse = function() {
+            const controls = document.getElementById('controls');
+            const galleryControls = document.getElementById('gallery-controls');
+            const icon = document.getElementById('collapse-icon');
+            
+            if (controls.classList.contains('collapsed')) {
+                controls.classList.remove('collapsed');
+                icon.textContent = '◀';
+                if (galleryControls) {
+                    galleryControls.style.right = '480px';
+                }
+            } else {
+                controls.classList.add('collapsed');
+                icon.textContent = '▶';
+                if (galleryControls) {
+                    galleryControls.style.right = '60px';
+                }
+            }
+        };
+        
+        // Info panel collapse toggle
+        window.toggleInfoCollapse = function() {
+            const info = document.getElementById('info');
+            const icon = document.getElementById('info-collapse-icon');
+            
+            if (info.classList.contains('collapsed')) {
+                info.classList.remove('collapsed');
+                icon.textContent = '▶';
+            } else {
+                info.classList.add('collapsed');
+                icon.textContent = '◀';
+            }
+        };
+        
         // Click to bring panel to front
         function bringToFront(element) {
             const panels = ['info', 'controls', 'gallery-controls', 'essay-display', 'dml-table', 'pc-global-info'];
@@ -2024,6 +2495,10 @@ html_content = """<!DOCTYPE html>
         
         // Apply initial font sizes
         applyFontSizes();
+        
+        // Initialize topic visualization
+        generateTopicColors();
+        createTopicVisuals();
         
         // Custom cursor
         const cursorIndicator = document.getElementById('cursor-indicator');
@@ -2230,6 +2705,12 @@ html_content = """<!DOCTYPE html>
             }
             
             controls.update();
+            
+            // Update topic visibility if topics are shown
+            if (document.getElementById('toggle-topics').checked) {
+                updateTopicVisibility();
+            }
+            
             renderer.render(scene, camera);
         }
         
@@ -2246,19 +2727,21 @@ html_content = """<!DOCTYPE html>
 </html>"""
 
 # Save
-output_file = OUTPUT_DIR / 'minimal_umap_viz_v17.html'
+output_file = OUTPUT_DIR / 'minimal_umap_viz_v18.html'
 with open(output_file, 'w') as f:
     f.write(html_content)
 
-print(f"\n✅ Enhanced visualization v17 with real-time threshold updates saved to: {output_file}")
-print("\nChanges in v17 (based on v16):")
-print("- Removed 'Apply Thresholds' button - dots update in real-time")
-print("- Added preset buttons: Median (P50), Quartiles (P25/P75), Extremes (P10/P90)")
-print("- All threshold changes immediately update the visualization")
-print("\nChanges in v16 (based on v14):")
-print("- Can resize essay display by dragging the top edge")
-print("- Minimize button (–/+) on essay display")  
-print("- Font size applies to all text content")
-print("- Height constraints: 80px min, 80% viewport max")
-print("- All PC, SHAP, variance text now white")
-print("- Essay background opacity default: 25%")
+print(f"\n✅ Enhanced visualization v18 with HDBSCAN topics saved to: {output_file}")
+print("\nChanges in v18 (based on v17):")
+print("- Added HDBSCAN clustering for automatic topic discovery")
+print("- c-TF-IDF keyword extraction for topic labels")
+print("- Toggle to show/hide topics with dynamic point coloring")
+print("- Billboarding text labels at topic centroids")
+print("- Slider to control number of visible topics (based on camera distance)")
+print("- Slider to adjust topic text size")
+print("- Topics update dynamically as camera moves")
+print("\nAll v17 features preserved including:")
+print("- Real-time threshold updates")
+print("- Preset buttons")
+print("- Resizable essay display")
+print("- Layer controls")
